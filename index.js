@@ -4,8 +4,164 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import fetch from 'node-fetch';
 
-const API_BASE_URL = 'https://lrn.oa-y.com/api';
+const API_BASE_URL = process.env.API_BASE_URL;
+const API_BASE_URL_PROFESSIONS = process.env.API_BASE_URL_PROFESSIONS;
 const API_TOKEN = process.env.API_TOKEN;
+
+// Input Schemas
+const getCoursesInputSchema = {
+  type: 'object',
+  properties: {
+    page: { type: 'number', description: 'Page number (default: 1)' },
+    limit: { type: 'number', description: 'Number of courses per page (default: 10)' },
+    search: { type: 'string', description: 'Search by course name or description' },
+    difficulty: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'], description: 'Filter by difficulty level' },
+    all: { type: 'boolean', description: 'Get all courses without pagination' }
+  }
+};
+const getCourseInputSchema = {
+  type: 'object',
+  properties: {
+    courseId: { type: 'string', description: 'Course ID' }
+  },
+  required: ['courseId']
+};
+// Общие схемы для модулей и уроков
+const lessonBaseSchema = {
+  title: { type: 'string', description: 'Lesson title' },
+  // IMPORTANT: if contentType === 'mixed', then contentBlocks is required, otherwise content is required
+  content: { type: 'string', description: 'Lesson content (required if contentType === "mixed")' },
+  duration: { type: 'number', description: 'Lesson duration in seconds' },
+  completed: { type: 'boolean', description: 'Is lesson completed' },
+  type: { type: 'string', enum: ['text', 'video', 'interactive'], description: 'Lesson type' },
+  contentType: { type: 'string', enum: ['standard','labyrinth','flippingCards','mixed','memoryGame','tagCloud','rolePlayGame','textReconstruction','html','video'], description: 'Content type' },
+  contentBlocks: {
+    type: 'array',
+    description: 'Content blocks (array of objects, required if contentType === "mixed")',
+    items: {
+      type: 'object',
+      properties: {
+        type: { type: 'string', enum: ['standard','labyrinth','flippingCards','mixed','memoryGame','tagCloud','rolePlayGame','textReconstruction','html','video'] },
+        content: { type: 'string' },
+        order: { type: 'number' }
+      },
+      required: ['type', 'content']
+    }
+  },
+  videoUrl: { type: 'string', description: 'Video URL' },
+  resources: {
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        type: { type: 'string' },
+        description: { type: 'string' },
+        url: { type: 'string' }
+      },
+      required: ['title', 'type', 'description', 'url']
+    }
+  },
+  practiceExercises: {
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        description: { type: 'string' },
+        codeSnippet: { type: 'string' },
+        playgroundUrl: { type: 'string' }
+      },
+      required: ['title', 'description']
+    }
+  },
+  isDraft: { type: 'boolean', description: 'Is draft' }
+};
+const courseModuleSchema = {
+  type: 'object',
+  properties: {
+    title: { type: 'string' },
+    description: { type: 'string' },
+    content: { type: 'string' },
+    order: { type: 'number' },
+    lessons: { type: 'array', items: { type: 'string' }, default: [] },
+    tests: { type: 'array', items: { type: 'string' }, default: [] },
+    achievements: { type: 'array', items: { type: 'string' }, default: [] }
+  },
+  required: ['title', 'content']
+};
+const courseBaseSchema = {
+  title: { type: 'string', description: 'Course title' },
+  description: { type: 'string', description: 'Course description' },
+  image: { type: 'string' },
+  modules: {
+    type: 'array',
+    description: 'Course modules',
+    default: [],
+    items: courseModuleSchema
+  },
+  professions: {
+    type: 'array',
+    items: { type: 'string' },
+    description: 'Array of profession IDs (must be obtained via get_professions tool call)',
+    default: []
+  },
+  difficulty: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'], description: 'Difficulty level' },
+  duration: { type: 'number', description: 'Course duration (optional)' },
+  isDraft: { type: 'boolean' }
+};
+const getLessonsInputSchema = {
+  type: 'object',
+  properties: {
+    page: { type: 'number', description: 'Page number (default: 1)' },
+    limit: { type: 'number', description: 'Number of lessons per page (default: 10)' },
+    search: { type: 'string', description: 'Search by lesson title or description' }
+  }
+};
+const getLessonInputSchema = {
+  type: 'object',
+  properties: {
+    courseId: { type: 'string', description: 'Course ID' },
+    moduleId: { type: 'string', description: 'Module ID' },
+    lessonId: { type: 'string', description: 'Lesson ID' }
+  },
+  required: ['courseId', 'moduleId', 'lessonId']
+};
+const createCourseInputSchema = {
+  type: 'object',
+  properties: {
+    ...courseBaseSchema
+  },
+  required: ['title', 'description', 'difficulty']
+};
+const updateCourseInputSchema = {
+  type: 'object',
+  properties: {
+    courseId: { type: 'string', description: 'Course ID for update' },
+    ...courseBaseSchema
+  },
+  required: ['courseId', 'title', 'description', 'difficulty']
+};
+const createLessonInputSchema = {
+  type: 'object',
+  properties: {
+    ...lessonBaseSchema
+  },
+  // IMPORTANT: if contentType === 'mixed', then contentBlocks is required, otherwise content is required
+  required: ['title', 'type', 'contentType']
+};
+const updateLessonInputSchema = {
+  type: 'object',
+  properties: {
+    lessonId: { type: 'string', description: 'Lesson ID for update' },
+    ...lessonBaseSchema
+  },
+  required: ['lessonId', 'title', 'type', 'contentType']
+};
+const getProfessionsInputSchema = {
+  type: 'object',
+  properties: {}
+};
 
 // Create server
 const server = new Server({
@@ -30,171 +186,41 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       // Courses
       {
         name: 'get_courses',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            page: {
-              type: 'number',
-              description: 'Page number (default: 1)'
-            },
-            limit: {
-              type: 'number',
-              description: 'Number of courses per page (default: 10)'
-            },
-            search: {
-              type: 'string',
-              description: 'Search by course name or description'
-            },
-            difficulty: {
-              type: 'string',
-              enum: ['beginner', 'intermediate', 'advanced'],
-              description: 'Filter by difficulty level'
-            },
-            all: {
-              type: 'boolean',
-              description: 'Get all courses without pagination'
-            }
-          }
-        }
+        inputSchema: getCoursesInputSchema
       },
       {
         name: 'get_course',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            courseId: {
-              type: 'string',
-              description: 'Course ID'
-            }
-          },
-          required: ['courseId']
-        }
+        inputSchema: getCourseInputSchema
       },
       {
         name: 'create_course',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            title: {
-              type: 'string',
-              description: 'Course title'
-            },
-            description: {
-              type: 'string',
-              description: 'Course description'
-            },
-            difficulty: {
-              type: 'string',
-              enum: ['beginner', 'intermediate', 'advanced'],
-              description: 'Difficulty level'
-            },
-            modules: {
-              type: 'array',
-              description: 'Course modules',
-              items: {
-                type: 'object',
-                properties: {
-                  title: { type: 'string' },
-                  description: { type: 'string' },
-                  content: { type: 'string' },
-                  order: { type: 'number' },
-                  lessons: {
-                    type: 'array',
-                    description: 'Module lessons (array of objects or IDs)',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        title: { type: 'string' },
-                        content: { type: 'string' },
-                        duration: { type: 'number' },
-                        type: { type: 'string' },
-                        contentType: { type: 'string' },
-                        resources: { type: 'array' },
-                        practiceExercises: { type: 'array' },
-                        contentBlocks: { type: 'array' }
-                      }
-                    }
-                  },
-                  tests: {
-                    type: 'array',
-                    description: 'Module tests (array of objects)',
-                    items: { type: 'object' }
-                  }
-                }
-              }
-            },
-            professions: {
-              type: 'array',
-              description: 'Professions (array of strings)',
-              items: { type: 'string' }
-            },
-            image: {
-              type: 'string',
-              description: 'Course image URL'
-            },
-            isDraft: {
-              type: 'boolean',
-              description: 'Course is a draft'
-            }
-          },
-          required: ['title', 'description', 'difficulty']
-        }
+        inputSchema: createCourseInputSchema
       },
       {
         name: 'update_course',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            courseId: {
-              type: 'string',
-              description: 'Course ID for update'
-            },
-            title: {
-              type: 'string',
-              description: 'Course title'
-            },
-            description: {
-              type: 'string',
-              description: 'Course description'
-            },
-            difficulty: {
-              type: 'string',
-              enum: ['beginner', 'intermediate', 'advanced'],
-              description: 'Difficulty level'
-            },
-            modules: {
-              type: 'array',
-              description: 'Course modules'
-            },
-            isDraft: {
-              type: 'boolean',
-              description: 'Course is a draft'
-            }
-          },
-          required: ['courseId']
-        }
+        inputSchema: updateCourseInputSchema
       },
       // Lessons
       {
+        name: 'get_lessons',
+        inputSchema: getLessonsInputSchema
+      },
+      {
         name: 'get_lesson',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            courseId: {
-              type: 'string',
-              description: 'Course ID'
-            },
-            moduleId: {
-              type: 'string',
-              description: 'Module ID'
-            },
-            lessonId: {
-              type: 'string',
-              description: 'Lesson ID'
-            }
-          },
-          required: ['courseId', 'moduleId', 'lessonId']
-        }
+        inputSchema: getLessonInputSchema
+      },
+      {
+        name: 'create_lesson',
+        inputSchema: createLessonInputSchema
+      },
+      {
+        name: 'update_lesson',
+        inputSchema: updateLessonInputSchema
+      },
+      // Professions
+      {
+        name: 'get_professions',
+        inputSchema: getProfessionsInputSchema
       }
     ]
   };
@@ -254,31 +280,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'create_course': {
-        const courseData = {
-          title: args.title,
-          description: args.description,
-          difficulty: args.difficulty,
-          professions: args.professions || [],
-          image: args.image,
-          isDraft: args.isDraft || false,
-          modules: []
-        };
-        // Process modules and create lessons via API if needed
+        // professions должны быть только id (строки), полученные через get_professions
+        // Получите список профессий через get_professions отдельно и передайте их id в это поле
+        let professions = args.professions || [];
+        professions = professions.map(p => typeof p === 'object' && p._id ? p._id : p);
+        // Сначала создаём все уроки для каждого модуля и собираем их id
+        const modules = [];
         if (Array.isArray(args.modules)) {
           for (const mod of args.modules) {
-            const moduleData = {
-              title: mod.title,
-              description: mod.description || '',
-              content: mod.content || '',
-              order: mod.order || 0,
-              lessons: [],
-              tests: mod.tests || []
-            };
-            // If lessons are objects (without _id), create them via API
+            const lessonIds = [];
             if (Array.isArray(mod.lessons)) {
               for (const lesson of mod.lessons) {
                 if (lesson._id) {
-                  moduleData.lessons.push(lesson._id);
+                  // Update lesson via PUT if needed
+                  const lessonResp = await fetch(`${API_BASE_URL}/lessons/${lesson._id}`, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify(lesson)
+                  });
+                  if (!lessonResp.ok) {
+                    throw new Error(`Error updating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
+                  }
+                  lessonIds.push(lesson._id);
                 } else {
                   // Create lesson via API
                   const lessonResp = await fetch(`${API_BASE_URL}/lessons`, {
@@ -291,18 +314,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                   }
                   const lessonData = await lessonResp.json();
                   if (lessonData.success && lessonData.data && lessonData.data._id) {
-                    moduleData.lessons.push(lessonData.data._id);
+                    lessonIds.push(lessonData.data._id);
                   } else {
                     throw new Error('Error creating lesson: _id not received');
                   }
                 }
               }
             }
-            courseData.modules.push(moduleData);
+            modules.push({
+              title: mod.title,
+              description: mod.description || '',
+              content: mod.content || '',
+              order: mod.order || 0,
+              lessons: lessonIds,
+              tests: mod.tests || [],
+              achievements: mod.achievements || []
+            });
           }
         }
         // Send request to create course
-        const response = await fetch(`${API_BASE_URL}/course`, {
+        const courseData = {
+          title: args.title,
+          description: args.description,
+          difficulty: args.difficulty,
+          duration: args.duration,
+          professions,
+          image: args.image,
+          isDraft: args.isDraft || false,
+          modules,
+        };
+        const response = await fetch(`${API_BASE_URL}/courses`, {
           method: 'POST',
           headers: getHeaders(),
           body: JSON.stringify(courseData)
@@ -322,14 +363,59 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'update_course': {
+        // professions должны быть только id (строки), полученные через get_professions
+        // Получите список профессий через get_professions отдельно и передайте их id в это поле
+        let professions = args.professions || [];
+        professions = professions.map(p => typeof p === 'object' && p._id ? p._id : p);
         const courseData = {
           _id: args.courseId,
-          ...args
+          ...args,
+          professions
         };
+        const courseId = args.courseId;
         delete courseData.courseId;
-
-        const response = await fetch(`${API_BASE_URL}/course`, {
-          method: 'POST',
+        // Process modules and create lessons via API if needed
+        if (Array.isArray(courseData.modules)) {
+          for (const mod of courseData.modules) {
+            if (Array.isArray(mod.lessons)) {
+              for (let i = 0; i < mod.lessons.length; i++) {
+                const lesson = mod.lessons[i];
+                if (!lesson._id) {
+                  // Create lesson via API
+                  const lessonResp = await fetch(`${API_BASE_URL}/lessons`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify(lesson)
+                  });
+                  if (!lessonResp.ok) {
+                    throw new Error(`Error creating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
+                  }
+                  const lessonData = await lessonResp.json();
+                  if (lessonData.success && lessonData.data && lessonData.data._id) {
+                    mod.lessons[i] = lessonData.data._id;
+                  } else {
+                    throw new Error('Error creating lesson: _id not received');
+                  }
+                } else if (typeof lesson === 'object' && lesson._id) {
+                  // Update lesson via PUT
+                  const lessonResp = await fetch(`${API_BASE_URL}/lessons/${lesson._id}`, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify(lesson)
+                  });
+                  if (!lessonResp.ok) {
+                    throw new Error(`Error updating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
+                  }
+                }
+              }
+              // После всех операций заменяем объекты-уроки на id
+              mod.lessons = mod.lessons.map(lesson => typeof lesson === 'object' && lesson._id ? lesson._id : lesson);
+            }
+          }
+        }
+        // Update course via API
+        const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
+          method: 'PUT',
           headers: getHeaders(),
           body: JSON.stringify(courseData)
         });
@@ -349,15 +435,106 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'get_lesson': {
-        const response = await fetch(`${API_BASE_URL}/courses/${args.courseId}/modules/${args.moduleId}/lessons/${args.lessonId}`, {
+      case 'get_lessons': {
+        const params = new URLSearchParams();
+        if (args.page) params.append('page', args.page.toString());
+        if (args.limit) params.append('limit', args.limit.toString());
+        if (args.search) params.append('search', args.search);
+        if (args.type) params.append('type', args.type);
+        if (args.contentType) params.append('contentType', args.contentType);
+        if (args.courseId) params.append('courseId', args.courseId);
+        if (args.moduleId) params.append('moduleId', args.moduleId);
+        if (args.sortBy) params.append('sortBy', args.sortBy);
+        if (args.all) params.append('all', 'true');
+        const response = await fetch(`${API_BASE_URL}/lessons?${params}`, {
           headers: getHeaders()
         });
-
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
+        const data = await response.json();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(data, null, 2)
+            }
+          ]
+        };
+      }
 
+      case 'get_lesson': {
+        const response = await fetch(`${API_BASE_URL}/lessons/${args.lessonId}`, {
+          headers: getHeaders()
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const data = await response.json();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(data, null, 2)
+            }
+          ]
+        };
+      }
+
+      case 'create_lesson': {
+        const lessonData = { ...args };
+        const response = await fetch(`${API_BASE_URL}/lessons`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify(lessonData)
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const data = await response.json();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(data, null, 2)
+            }
+          ]
+        };
+      }
+
+      case 'update_lesson': {
+        const lessonId = args.lessonId || args._id;
+        if (!lessonId) {
+          throw new Error('lessonId is required');
+        }
+        const lessonData = { ...args };
+        delete lessonData.lessonId;
+        const response = await fetch(`${API_BASE_URL}/lessons/${lessonId}`, {
+          method: 'PUT',
+          headers: getHeaders(),
+          body: JSON.stringify(lessonData)
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const data = await response.json();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(data, null, 2)
+            }
+          ]
+        };
+      }
+
+      case 'get_professions': {
+        const response = await fetch(`${API_BASE_URL_PROFESSIONS}/profession`, {
+          headers: getHeaders()
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         const data = await response.json();
         return {
           content: [
