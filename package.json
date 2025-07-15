@@ -1,0 +1,29 @@
+{
+  "name": "oa-y-learning-mcp-service",
+  "version": "2.0.0",
+  "description": "MCP Service for OA-Y Learning Platform",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "bin": {
+    "oa-y-learning-mcp": "./index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.15.1",
+    "node-fetch": "^2.6.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "mcp",
+    "learning",
+    "courses",
+    "education"
+  ],
+  "author": "OA-Y",
+  "license": "MIT"
+}
