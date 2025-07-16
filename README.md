@@ -6,23 +6,23 @@ A minimal Model Context Protocol (MCP) service for managing courses and lessons 
 
 1. Clone the repository and install dependencies:
    ```bash
-   git clone <your_repo_url>
+   git clone https://github.com/AdminRHS/oa-y-mcp-service.git
    cd oa-y-mcp-service
    npm install
    ```
 
 2. Start the service with the required environment variables:
    ```bash
-   export API_TOKEN=your_token
    export API_BASE_URL=https://lrn.oa-y.com/api-tokens
    export API_BASE_URL_PROFESSIONS=https://libdev.anyemp.com/api
+   export API_TOKEN=your_token
    npm start
    ```
    For Windows, use `set` instead of `export`:
    ```cmd
-   set API_TOKEN=your_token
    set API_BASE_URL=https://lrn.oa-y.com/api-tokens
    set API_BASE_URL_PROFESSIONS=https://libdev.anyemp.com/api
+   set API_TOKEN=your_token
    npm start
    ```
 
@@ -38,7 +38,9 @@ A minimal Model Context Protocol (MCP) service for managing courses and lessons 
        "command": "node",
        "args": ["C:\\Projects\\RH\\oa-y-mcp-service\\index.js"],
        "env": {
-         "API_TOKEN": "your_token"
+          "API_BASE_URL": "https://lrn.oa-y.com/api-tokens",
+          "API_BASE_URL_PROFESSIONS": "https://libdev.anyemp.com/api",
+          "API_TOKEN": "your_token"
        }
      }
    }
@@ -46,7 +48,7 @@ A minimal Model Context Protocol (MCP) service for managing courses and lessons 
 
 ---
 
-## Integration via npx from Private GitHub Repository
+## Integration via npx from Public GitHub Repository
 
 To use this service as an MSP directly from GitHub (including from AI/integrations):
 
@@ -54,22 +56,28 @@ To use this service as an MSP directly from GitHub (including from AI/integratio
 "mcpServers": {
   "oa-y-mcp-service": {
     "command": "npx",
-    "args": ["github:LiliiaDanylenko/oa-y-mcp-service"],
+    "args": ["github:AdminRHS/oa-y-mcp-service"],
     "env": {
-      "API_BASE_URL": "",
-      "API_BASE_URL_PROFESSIONS": "",
-      "GITHUB_TOKEN": "",
-      "API_TOKEN": ""
+      "API_BASE_URL": "https://lrn.oa-y.com/api-tokens",
+      "API_BASE_URL_PROFESSIONS": "https://libdev.anyemp.com/api",
+      "API_TOKEN": "your_token"
     }
   }
 }
 ```
 
 **Explanation:**
-- `GITHUB_TOKEN` — your GitHub Personal Access Token with `repo` scope (for access to the private repository).
 - `API_TOKEN` — token for access to the external API lrn.oa-y.com.
 - `API_BASE_URL` and `API_BASE_URL_PROFESSIONS` — URLs of the external APIs.
-- Do not publish your tokens in public repositories!
+
+---
+
+## How to get your API_TOKEN
+
+- Go to [https://lrn.oa-y.com](https://lrn.oa-y.com) and log in as an **admin**.
+- Open the **Admin Panel** and go to the **API Tokens** tab.
+- Click **Create Token**, enter a name, and click **Create Token**.
+- Copy the generated token and set it as your `API_TOKEN` environment variable.
 
 ---
 

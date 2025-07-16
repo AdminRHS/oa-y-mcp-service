@@ -31,7 +31,7 @@ const lessonBaseSchema = {
   title: { type: 'string', description: 'Lesson title' },
   // IMPORTANT: if contentType === 'mixed', then contentBlocks is required, otherwise content is required
   content: { type: 'string', description: 'Lesson content (required if contentType === "mixed")' },
-  duration: { type: 'number', description: 'Lesson duration in seconds' },
+  duration: { type: 'number', description: 'Lesson duration in minutes' },
   completed: { type: 'boolean', description: 'Is lesson completed' },
   type: { type: 'string', enum: ['text', 'video', 'interactive'], description: 'Lesson type' },
   contentType: { type: 'string', enum: ['standard','labyrinth','flippingCards','mixed','memoryGame','tagCloud','rolePlayGame','textReconstruction','html','video'], description: 'Content type' },
@@ -84,6 +84,7 @@ const courseModuleSchema = {
     description: { type: 'string' },
     content: { type: 'string' },
     order: { type: 'number' },
+    duration: { type: 'number', description: 'Module duration in minutes' },
     lessons: { type: 'array', items: { type: 'string' }, default: [] },
     tests: { type: 'array', items: { type: 'string' }, default: [] },
     achievements: { type: 'array', items: { type: 'string' }, default: [] }
@@ -107,7 +108,7 @@ const courseBaseSchema = {
     default: []
   },
   difficulty: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'], description: 'Difficulty level' },
-  duration: { type: 'number', description: 'Course duration (optional)' },
+  duration: { type: 'number', description: 'Course duration in minutes (optional)' },
   isDraft: { type: 'boolean' }
 };
 const getLessonsInputSchema = {
@@ -291,8 +292,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             const lessonIds = [];
             if (Array.isArray(mod.lessons)) {
               for (const lesson of mod.lessons) {
-                if (lesson._id) {
-                  // Update lesson via PUT if needed
+                if (typeof lesson === 'string') {
+                  // Just id of existing lesson
+                  lessonIds.push(lesson);
+                } else if (lesson._id) {
+                  // Update existing lesson
                   const lessonResp = await fetch(`${API_BASE_URL}/lessons/${lesson._id}`, {
                     method: 'PUT',
                     headers: getHeaders(),
@@ -326,6 +330,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               description: mod.description || '',
               content: mod.content || '',
               order: mod.order || 0,
+              duration: mod.duration || 0,
               lessons: lessonIds,
               tests: mod.tests || [],
               achievements: mod.achievements || []
@@ -380,8 +385,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             if (Array.isArray(mod.lessons)) {
               for (let i = 0; i < mod.lessons.length; i++) {
                 const lesson = mod.lessons[i];
-                if (!lesson._id) {
-                  // Create lesson via API
+                if (typeof lesson === 'string') {
+                  // Just id of existing lesson
+                  continue;
+                } else if (lesson._id) {
+                  // Update existing lesson
+                  const lessonResp = await fetch(`${API_BASE_URL}/lessons/${lesson._id}`, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify(lesson)
+                  });
+                  if (!lessonResp.ok) {
+                    throw new Error(`Error updating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
+                  }
+                } else {
+                  // Create new lesson
                   const lessonResp = await fetch(`${API_BASE_URL}/lessons`, {
                     method: 'POST',
                     headers: getHeaders(),
@@ -396,19 +414,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                   } else {
                     throw new Error('Error creating lesson: _id not received');
                   }
-                } else if (typeof lesson === 'object' && lesson._id) {
-                  // Update lesson via PUT
-                  const lessonResp = await fetch(`${API_BASE_URL}/lessons/${lesson._id}`, {
-                    method: 'PUT',
-                    headers: getHeaders(),
-                    body: JSON.stringify(lesson)
-                  });
-                  if (!lessonResp.ok) {
-                    throw new Error(`Error updating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
-                  }
                 }
               }
-              // После всех операций заменяем объекты-уроки на id
+              // After all operations, replace objects-lessons with id
               mod.lessons = mod.lessons.map(lesson => typeof lesson === 'object' && lesson._id ? lesson._id : lesson);
             }
           }
