@@ -1,86 +1,113 @@
 # OA-Y MCP Service
 
-A minimal Model Context Protocol (MCP) service for managing courses and lessons via HTTP API.
+A minimal MCP service for managing courses via HTTP API. Supports OA-Y production and development platforms.
 
-## Local Development
+---
 
-1. Clone the repository and install dependencies:
+## Quick Start
+
+1. Install dependencies:
    ```bash
-   git clone https://github.com/AdminRHS/oa-y-mcp-service.git
-   cd oa-y-mcp-service
    npm install
    ```
-
-2. Start the service with the required environment variables:
+2. Set environment variables:
+   - `APP_ENV=prod` or `APP_ENV=dev`
+   - `API_TOKEN=your_token`
+3. Start the service:
    ```bash
-   export API_BASE_URL=https://lrn.oa-y.com/api-tokens
-   export API_BASE_URL_PROFESSIONS=https://libdev.anyemp.com/api
-   export API_TOKEN=your_token
-   npm start
-   ```
-   For Windows, use `set` instead of `export`:
-   ```cmd
-   set API_BASE_URL=https://lrn.oa-y.com/api-tokens
-   set API_BASE_URL_PROFESSIONS=https://libdev.anyemp.com/api
-   set API_TOKEN=your_token
-   npm start
-   ```
-
-3. Example request to the local server:
-   ```bash
-   curl -X POST http://localhost:3000/mcp -H "Content-Type: application/json" -d '{"protocol":"MCP","action":"read","model":"Course"}'
-   ```
-
-4. Example configuration for local MCP integration:
-   ```json
-   "mcpServers": {
-     "oa-y-mcp-service": {
-       "command": "node",
-       "args": ["C:\\Projects\\RH\\oa-y-mcp-service\\index.js"],
-       "env": {
-          "API_BASE_URL": "https://lrn.oa-y.com/api-tokens",
-          "API_BASE_URL_PROFESSIONS": "https://libdev.anyemp.com/api",
-          "API_TOKEN": "your_token"
-       }
-     }
-   }
+   node index.js
    ```
 
 ---
 
-## Integration via npx from Public GitHub Repository
+## How to get your API_TOKEN (Production)
 
-To use this service as an MSP directly from GitHub (including from AI/integrations):
+1. Go to [https://oa-y.com](https://oa-y.com) and log in as an **admin**.
+2. Open the **Admin Panel** and go to the **API Tokens** tab.
+3. Click **Create Token**, enter a name, and click **Create Token**.
+4. Copy the generated token and set it as your `API_TOKEN` environment variable.
+
+---
+
+## Integration as MCP Server
+
+You can integrate this service as an external MCP server in your platform or AI system.
+
+**Example configuration (local node):**
 
 ```json
-"mcpServers": {
-  "oa-y-mcp-service": {
-    "command": "npx",
-    "args": ["github:AdminRHS/oa-y-mcp-service"],
-    "env": {
-      "API_BASE_URL": "https://lrn.oa-y.com/api-tokens",
-      "API_BASE_URL_PROFESSIONS": "https://libdev.anyemp.com/api",
-      "API_TOKEN": "your_token"
+{
+  "mcpServers": {
+    "oa-y-mcp-service": {
+      "command": "node",
+      "args": ["/path/to/oa-y-mcp-service/index.js"],
+      "env": {
+        "APP_ENV": "prod",
+        "API_TOKEN": "your_token"
+      }
     }
   }
 }
 ```
 
-**Explanation:**
-- `API_TOKEN` — token for access to the external API lrn.oa-y.com.
-- `API_BASE_URL` and `API_BASE_URL_PROFESSIONS` — URLs of the external APIs.
+**Example configuration (npx from GitHub):**
+
+```json
+{
+  "mcpServers": {
+    "oa-y-mcp-service": {
+      "command": "npx",
+      "args": ["github:AdminRHS/oa-y-mcp-service"],
+      "env": {
+        "APP_ENV": "prod",
+        "API_TOKEN": "your_token"
+      }
+    }
+  }
+}
+```
 
 ---
 
-## How to get your API_TOKEN
+## MCP Tools
 
-- Go to [https://lrn.oa-y.com](https://lrn.oa-y.com) and log in as an **admin**.
-- Open the **Admin Panel** and go to the **API Tokens** tab.
-- Click **Create Token**, enter a name, and click **Create Token**.
-- Copy the generated token and set it as your `API_TOKEN` environment variable.
+- **prod:** `login`, `create_or_update_course`, `get_courses`
+- **dev:** `get_courses`, `get_course`, `create_course`, `update_course`, `get_lessons`, `get_lesson`, `create_lesson`, `update_lesson`, `get_professions`
+
+---
+
+## Example Requests
+
+**Login (prod):**
+
+```json
+{
+  "name": "login",
+  "arguments": { "email": "user@example.com", "password": "your_password" }
+}
+```
+
+**Create Course (dev):**
+
+```json
+{
+  "name": "create_course",
+  "arguments": {
+    "title": "Course Title",
+    "description": "Course description",
+    "difficulty": "beginner",
+    "modules": [],
+    "professions": [],
+    "image": "",
+    "duration": 60
+  }
+}
+```
 
 ---
 
 ## Notes
-- Do not store secrets or passwords in the repository.
-- The API token must be provided via environment variable `API_TOKEN`. 
+
+- Only `APP_ENV` and `API_TOKEN` are required.
+- API URLs are hardcoded for each mode.
+- Prod: [https://oa-y.com](https://oa-y.com) | Dev: [https://lrn.oa-y.com](https://lrn.oa-y.com)

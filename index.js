@@ -2,11 +2,20 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import fetch from 'node-fetch';
+import { devToolHandlers } from './devToolHandlers.js';
+import { prodToolHandlers } from './prodToolHandlers.js';
 
-const API_BASE_URL = process.env.API_BASE_URL;
-const API_BASE_URL_PROFESSIONS = process.env.API_BASE_URL_PROFESSIONS;
-const API_TOKEN = process.env.API_TOKEN;
+const APP_ENV = process.env.APP_ENV || 'prod'; // 'dev' | 'prod'
+const API_TOKEN = process.env.API_TOKEN || '';
+
+const API_BASE_URL = APP_ENV === 'dev'
+  ? 'https://lrn.oa-y.com/api-tokens'
+  : 'https://oa-y.com';
+const API_BASE_URL_PROFESSIONS = APP_ENV === 'dev'
+  ? 'https://libdev.anyemp.com/api'
+  : undefined;
+
+export { API_BASE_URL, API_BASE_URL_PROFESSIONS, API_TOKEN, APP_ENV };
 
 // Input Schemas
 const getCoursesInputSchema = {
@@ -164,6 +173,80 @@ const getProfessionsInputSchema = {
   properties: {}
 };
 
+// Legacy input schemas
+const legacyCourseInputSchema = {
+  type: 'object',
+  properties: {
+    _id: { type: 'string', description: 'Course ID (for update)' },
+    title: { type: 'string', description: 'Course title' },
+    description: { type: 'string', description: 'Course description' },
+    category: { type: 'string', description: 'Course category' },
+    difficulty: { type: 'string', description: 'Course difficulty' },
+    modules: { type: 'array', items: { type: 'object' }, default: [] },
+    image: { type: 'string' },
+    duration: { type: 'number' }
+  },
+  required: ['title', 'description', 'category', 'difficulty']
+};
+const legacyBatchImportInputSchema = {
+  type: 'object',
+  properties: {
+    courses: {
+      type: 'array',
+      items: legacyCourseInputSchema,
+      description: 'Array of courses to import'
+    }
+  },
+  required: ['courses']
+};
+
+// Legacy input schemas
+const legacyLoginInputSchema = {
+  type: 'object',
+  properties: {
+    email: { type: 'string', description: 'User email' },
+    password: { type: 'string', description: 'User password' }
+  },
+  required: ['email', 'password']
+};
+const legacyGetCoursesInputSchema = {
+  type: 'object',
+  properties: {
+    page: { type: 'number', description: 'Page number (default: 1)' },
+    limit: { type: 'number', description: 'Number of courses per page (default: 10)' },
+    search: { type: 'string', description: 'Search by course name or description' },
+    all: { type: 'boolean', description: 'If true, returns all courses without pagination' }
+  }
+};
+
+// New tools (new API)
+const newTools = [
+  { name: 'get_courses', inputSchema: getCoursesInputSchema },
+  { name: 'get_course', inputSchema: getCourseInputSchema },
+  { name: 'create_course', inputSchema: createCourseInputSchema },
+  { name: 'update_course', inputSchema: updateCourseInputSchema },
+  { name: 'get_lessons', inputSchema: getLessonsInputSchema },
+  { name: 'get_lesson', inputSchema: getLessonInputSchema },
+  { name: 'create_lesson', inputSchema: createLessonInputSchema },
+  { name: 'update_lesson', inputSchema: updateLessonInputSchema },
+  { name: 'get_professions', inputSchema: getProfessionsInputSchema }
+];
+
+const prodTools = [
+  {
+    name: 'create_or_update_course',
+    inputSchema: legacyCourseInputSchema
+  },
+  {
+    name: 'get_courses',
+    inputSchema: legacyGetCoursesInputSchema
+  },
+  {
+    name: 'login',
+    inputSchema: legacyLoginInputSchema
+  }
+];
+
 // Create server
 const server = new Server({
   name: 'oa-y-learning-mcp',
@@ -174,399 +257,24 @@ const server = new Server({
   }
 });
 
-// Set headers for API requests
-const getHeaders = () => ({
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${API_TOKEN}`
-});
-
 // List tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
-    tools: [
-      // Courses
-      {
-        name: 'get_courses',
-        inputSchema: getCoursesInputSchema
-      },
-      {
-        name: 'get_course',
-        inputSchema: getCourseInputSchema
-      },
-      {
-        name: 'create_course',
-        inputSchema: createCourseInputSchema
-      },
-      {
-        name: 'update_course',
-        inputSchema: updateCourseInputSchema
-      },
-      // Lessons
-      {
-        name: 'get_lessons',
-        inputSchema: getLessonsInputSchema
-      },
-      {
-        name: 'get_lesson',
-        inputSchema: getLessonInputSchema
-      },
-      {
-        name: 'create_lesson',
-        inputSchema: createLessonInputSchema
-      },
-      {
-        name: 'update_lesson',
-        inputSchema: updateLessonInputSchema
-      },
-      // Professions
-      {
-        name: 'get_professions',
-        inputSchema: getProfessionsInputSchema
-      }
-    ]
+    tools: APP_ENV === 'dev' ? newTools : prodTools
   };
 });
 
 // Tool handler
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
-
+  const toolHandlers = APP_ENV === 'dev' ? devToolHandlers : prodToolHandlers;
+  if (!toolHandlers[name]) {
+    return { content: [{ type: 'text', text: `Unknown tool: ${name}` }], isError: true };
+  }
   try {
-    switch (name) {
-      case 'get_courses': {
-        const params = new URLSearchParams();
-        if (args.page) params.append('page', args.page.toString());
-        if (args.limit) params.append('limit', args.limit.toString());
-        if (args.search) params.append('search', args.search);
-        if (args.difficulty) params.append('difficulty', args.difficulty);
-        if (args.all) params.append('all', 'true');
-
-        const response = await fetch(`${API_BASE_URL}/courses?${params}`, {
-          headers: getHeaders()
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(data, null, 2)
-            }
-          ]
-        };
-      }
-
-      case 'get_course': {
-        const response = await fetch(`${API_BASE_URL}/courses/${args.courseId}`, {
-          headers: getHeaders()
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(data, null, 2)
-            }
-          ]
-        };
-      }
-
-      case 'create_course': {
-        // professions должны быть только id (строки), полученные через get_professions
-        // Получите список профессий через get_professions отдельно и передайте их id в это поле
-        let professions = args.professions || [];
-        professions = professions.map(p => typeof p === 'object' && p._id ? p._id : p);
-        // Сначала создаём все уроки для каждого модуля и собираем их id
-        const modules = [];
-        if (Array.isArray(args.modules)) {
-          for (const mod of args.modules) {
-            const lessonIds = [];
-            if (Array.isArray(mod.lessons)) {
-              for (const lesson of mod.lessons) {
-                if (typeof lesson === 'string') {
-                  // Just id of existing lesson
-                  lessonIds.push(lesson);
-                } else if (lesson._id) {
-                  // Update existing lesson
-                  const lessonResp = await fetch(`${API_BASE_URL}/lessons/${lesson._id}`, {
-                    method: 'PUT',
-                    headers: getHeaders(),
-                    body: JSON.stringify(lesson)
-                  });
-                  if (!lessonResp.ok) {
-                    throw new Error(`Error updating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
-                  }
-                  lessonIds.push(lesson._id);
-                } else {
-                  // Create lesson via API
-                  const lessonResp = await fetch(`${API_BASE_URL}/lessons`, {
-                    method: 'POST',
-                    headers: getHeaders(),
-                    body: JSON.stringify(lesson)
-                  });
-                  if (!lessonResp.ok) {
-                    throw new Error(`Error creating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
-                  }
-                  const lessonData = await lessonResp.json();
-                  if (lessonData.success && lessonData.data && lessonData.data._id) {
-                    lessonIds.push(lessonData.data._id);
-                  } else {
-                    throw new Error('Error creating lesson: _id not received');
-                  }
-                }
-              }
-            }
-            modules.push({
-              title: mod.title,
-              description: mod.description || '',
-              content: mod.content || '',
-              order: mod.order || 0,
-              duration: mod.duration || 0,
-              lessons: lessonIds,
-              tests: mod.tests || [],
-              achievements: mod.achievements || []
-            });
-          }
-        }
-        // Send request to create course
-        const courseData = {
-          title: args.title,
-          description: args.description,
-          difficulty: args.difficulty,
-          duration: args.duration,
-          professions,
-          image: args.image,
-          isDraft: args.isDraft || false,
-          modules,
-        };
-        const response = await fetch(`${API_BASE_URL}/courses`, {
-          method: 'POST',
-          headers: getHeaders(),
-          body: JSON.stringify(courseData)
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        const data = await response.json();
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(data, null, 2)
-            }
-          ]
-        };
-      }
-
-      case 'update_course': {
-        // professions должны быть только id (строки), полученные через get_professions
-        // Получите список профессий через get_professions отдельно и передайте их id в это поле
-        let professions = args.professions || [];
-        professions = professions.map(p => typeof p === 'object' && p._id ? p._id : p);
-        const courseData = {
-          _id: args.courseId,
-          ...args,
-          professions
-        };
-        const courseId = args.courseId;
-        delete courseData.courseId;
-        // Process modules and create lessons via API if needed
-        if (Array.isArray(courseData.modules)) {
-          for (const mod of courseData.modules) {
-            if (Array.isArray(mod.lessons)) {
-              for (let i = 0; i < mod.lessons.length; i++) {
-                const lesson = mod.lessons[i];
-                if (typeof lesson === 'string') {
-                  // Just id of existing lesson
-                  continue;
-                } else if (lesson._id) {
-                  // Update existing lesson
-                  const lessonResp = await fetch(`${API_BASE_URL}/lessons/${lesson._id}`, {
-                    method: 'PUT',
-                    headers: getHeaders(),
-                    body: JSON.stringify(lesson)
-                  });
-                  if (!lessonResp.ok) {
-                    throw new Error(`Error updating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
-                  }
-                } else {
-                  // Create new lesson
-                  const lessonResp = await fetch(`${API_BASE_URL}/lessons`, {
-                    method: 'POST',
-                    headers: getHeaders(),
-                    body: JSON.stringify(lesson)
-                  });
-                  if (!lessonResp.ok) {
-                    throw new Error(`Error creating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
-                  }
-                  const lessonData = await lessonResp.json();
-                  if (lessonData.success && lessonData.data && lessonData.data._id) {
-                    mod.lessons[i] = lessonData.data._id;
-                  } else {
-                    throw new Error('Error creating lesson: _id not received');
-                  }
-                }
-              }
-              // After all operations, replace objects-lessons with id
-              mod.lessons = mod.lessons.map(lesson => typeof lesson === 'object' && lesson._id ? lesson._id : lesson);
-            }
-          }
-        }
-        // Update course via API
-        const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
-          method: 'PUT',
-          headers: getHeaders(),
-          body: JSON.stringify(courseData)
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(data, null, 2)
-            }
-          ]
-        };
-      }
-
-      case 'get_lessons': {
-        const params = new URLSearchParams();
-        if (args.page) params.append('page', args.page.toString());
-        if (args.limit) params.append('limit', args.limit.toString());
-        if (args.search) params.append('search', args.search);
-        if (args.type) params.append('type', args.type);
-        if (args.contentType) params.append('contentType', args.contentType);
-        if (args.courseId) params.append('courseId', args.courseId);
-        if (args.moduleId) params.append('moduleId', args.moduleId);
-        if (args.sortBy) params.append('sortBy', args.sortBy);
-        if (args.all) params.append('all', 'true');
-        const response = await fetch(`${API_BASE_URL}/lessons?${params}`, {
-          headers: getHeaders()
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        const data = await response.json();
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(data, null, 2)
-            }
-          ]
-        };
-      }
-
-      case 'get_lesson': {
-        const response = await fetch(`${API_BASE_URL}/lessons/${args.lessonId}`, {
-          headers: getHeaders()
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        const data = await response.json();
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(data, null, 2)
-            }
-          ]
-        };
-      }
-
-      case 'create_lesson': {
-        const lessonData = { ...args };
-        const response = await fetch(`${API_BASE_URL}/lessons`, {
-          method: 'POST',
-          headers: getHeaders(),
-          body: JSON.stringify(lessonData)
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        const data = await response.json();
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(data, null, 2)
-            }
-          ]
-        };
-      }
-
-      case 'update_lesson': {
-        const lessonId = args.lessonId || args._id;
-        if (!lessonId) {
-          throw new Error('lessonId is required');
-        }
-        const lessonData = { ...args };
-        delete lessonData.lessonId;
-        const response = await fetch(`${API_BASE_URL}/lessons/${lessonId}`, {
-          method: 'PUT',
-          headers: getHeaders(),
-          body: JSON.stringify(lessonData)
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        const data = await response.json();
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(data, null, 2)
-            }
-          ]
-        };
-      }
-
-      case 'get_professions': {
-        const response = await fetch(`${API_BASE_URL_PROFESSIONS}/profession`, {
-          headers: getHeaders()
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        const data = await response.json();
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(data, null, 2)
-            }
-          ]
-        };
-      }
-
-      default:
-        throw new Error(`Unknown tool: ${name}`);
-    }
+    return await toolHandlers[name](args);
   } catch (error) {
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `Error executing ${name}: ${error.message}`
-        }
-      ],
-      isError: true
-    };
+    return { content: [{ type: 'text', text: `Error executing ${name}: ${error.message}` }], isError: true };
   }
 });
 
