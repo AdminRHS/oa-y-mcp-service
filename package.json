@@ -1,19 +1,15 @@
 {
-  "name": "oa-y-learning-mcp-service",
+  "name": "oa-y-mcp-service",
   "version": "2.0.0",
   "description": "MCP Service for OA-Y Learning Platform",
-  "main": "index.js",
-  "type": "module",
-  "scripts": {
-    "start": "node index.js"
-  },
+  "main": "oa-y-mcp-service.js",
   "bin": {
-    "oa-y-learning-mcp": "./index.js"
+    "oa-y-mcp-service": "./oa-y-mcp-service.js"
   },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.15.1",
-    "node-fetch": "^2.6.7"
-  },
+  "type": "module",
+  "files": [
+    "oa-y-mcp-service.js"
+  ],
   "keywords": [
     "mcp",
     "learning",
