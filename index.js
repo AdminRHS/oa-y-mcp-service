@@ -4,6 +4,10 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { prodToolHandlers } from './prodToolHandlers.js';
 
+const API_TOKEN = process.env.API_TOKEN;
+
+export { API_TOKEN };
+
 // Legacy input schemas
 const legacyCourseInputSchema = {
   type: 'object',

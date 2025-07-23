@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import { API_TOKEN } from './index.js';
 let legacyJwt = null;
 
 const API_BASE_URL = 'https://oa-y.com';
