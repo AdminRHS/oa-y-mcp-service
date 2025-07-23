@@ -2,9 +2,58 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { prodToolHandlers } from './prodToolHandlers.js';
+import fetch from 'node-fetch';
 
 const API_TOKEN = process.env.API_TOKEN;
+const API_BASE_URL = 'https://oa-y.com/api-tokens';
+
+let legacyJwt = null;
+
+const getHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${API_TOKEN}`
+});
+
+const prodToolHandlers = {
+  async login(args) {
+    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: args.email, password: args.password })
+    });
+    const data = await response.json();
+    if (data.token) {
+      legacyJwt = data.token;
+      return { content: [{ type: 'text', text: 'Login successful' }] };
+    } else {
+      throw new Error(data.message || 'Login failed');
+    }
+  },
+  async create_or_update_course(args) {
+    const response = await fetch(`${API_BASE_URL}/api-token/course`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(args)
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const data = await response.json();
+    return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+  },
+  async get_courses(args) {
+    if (!legacyJwt) throw new Error('Not logged in. Please use login first.');
+    const params = new URLSearchParams();
+    if (args.page) params.append('page', args.page.toString());
+    if (args.limit) params.append('limit', args.limit.toString());
+    if (args.search) params.append('search', args.search);
+    if (args.all) params.append('all', 'true');
+    const response = await fetch(`${API_BASE_URL}/api/courses?${params}`, {
+      headers: { 'Authorization': `Bearer ${legacyJwt}` }
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const data = await response.json();
+    return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+  }
+};
 
 export { API_TOKEN };
 
