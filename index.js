@@ -2,7 +2,6 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import fetch from 'node-fetch';
 
 const API_TOKEN = process.env.API_TOKEN;
 const API_BASE_URL = 'https://oa-y.com/api-tokens';
