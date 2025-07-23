@@ -1,6 +1,6 @@
 # OA-Y MCP Service
 
-A minimal MCP service for managing courses via HTTP API. Supports OA-Y production and development platforms.
+A minimal MCP service for managing courses via HTTP API. Production mode only.
 
 ---
 
@@ -11,7 +11,7 @@ A minimal MCP service for managing courses via HTTP API. Supports OA-Y productio
    npm install
    ```
 2. Set environment variables:
-   - `APP_ENV=prod` or `APP_ENV=dev`
+   - `APP_ENV=prod`
    - `API_TOKEN=your_token`
 3. Start the service:
    ```bash
@@ -20,7 +20,7 @@ A minimal MCP service for managing courses via HTTP API. Supports OA-Y productio
 
 ---
 
-## How to get your API_TOKEN (Production)
+## How to get your API_TOKEN
 
 1. Go to [https://oa-y.com](https://oa-y.com) and log in as an **admin**.
 2. Open the **Admin Panel** and go to the **API Tokens** tab.
@@ -71,14 +71,13 @@ You can integrate this service as an external MCP server in your platform or AI 
 
 ## MCP Tools
 
-- **prod:** `login`, `create_or_update_course`, `get_courses`
-- **dev:** `get_courses`, `get_course`, `create_course`, `update_course`, `get_lessons`, `get_lesson`, `create_lesson`, `update_lesson`, `get_professions`
+- `login`, `create_or_update_course`, `get_courses`
 
 ---
 
 ## Example Requests
 
-**Login (prod):**
+**Login:**
 
 ```json
 {
@@ -87,17 +86,17 @@ You can integrate this service as an external MCP server in your platform or AI 
 }
 ```
 
-**Create Course (dev):**
+**Create or Update Course:**
 
 ```json
 {
-  "name": "create_course",
+  "name": "create_or_update_course",
   "arguments": {
     "title": "Course Title",
     "description": "Course description",
+    "category": "General",
     "difficulty": "beginner",
     "modules": [],
-    "professions": [],
     "image": "",
     "duration": 60
   }
@@ -108,6 +107,6 @@ You can integrate this service as an external MCP server in your platform or AI 
 
 ## Notes
 
-- Only `APP_ENV` and `API_TOKEN` are required.
-- API URLs are hardcoded for each mode.
-- Prod: [https://oa-y.com](https://oa-y.com) | Dev: [https://lrn.oa-y.com](https://lrn.oa-y.com)
+- Only `APP_ENV=prod` and `API_TOKEN` are required.
+- API URLs are hardcoded for production.
+- Platform: [https://oa-y.com](https://oa-y.com)
