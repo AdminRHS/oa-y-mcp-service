@@ -12,18 +12,15 @@
 
 ## Architecture
 
-- **index.js** — the main entry point, implements the MCP server and delegates tool calls. Defines base API URLs for production.
-- **prodToolHandlers.js** — contains tool handlers for production mode (course creation/update, retrieval, and login).
+- **index.js** — the main entry point, implements the MCP server and all tool logic. Defines base API URLs for production and uses only built-in Node.js modules and global fetch (Node.js 18+).
 - Uses the following packages:
   - `@modelcontextprotocol/sdk/server` — for MCP server and stdio transport
   - `@modelcontextprotocol/sdk/types` — for tool request schemas
-  - `node-fetch` — for HTTP requests to external APIs
 
 ---
 
 ## Environment Variables
 
-- `APP_ENV=prod`
 - `API_TOKEN` — authorization token for all requests
 
 > **Note:** API_BASE_URL is hardcoded for production. You do not need to provide it as an environment variable.
@@ -38,6 +35,27 @@
 
 ---
 
+## Course and Lesson URL Format
+
+To get a direct link to a course or lesson on the OA-Y platform, use the following formats:
+
+- **Course:**
+  ```
+  https://oa-y.com/courses/<course._id>
+  ```
+- **Lesson:**
+  ```
+  https://oa-y.com/courses/<course._id>/modules/<module._id>/lessons/<lesson._id>
+  ```
+
+**Example:**
+
+```
+https://oa-y.com/courses/681230548967b4c2d5ba1e9b/modules/680114ed65861c900d25fd59/lessons/680114ed65861c900d25fd5a
+```
+
+---
+
 ## API Interaction
 
 - All API requests use the header `Authorization: Bearer <API_TOKEN>`
@@ -47,18 +65,50 @@
 
 ---
 
-## Server Startup
+## Integration as MCP Server
 
-1. Install dependencies:
+You can integrate this service as an external MCP server in your platform or AI system. Example configuration:
+
+```json
+{
+  "mcpServers": {
+    "oa-y-mcp-service": {
+      "command": "npx",
+      "args": ["github:AdminRHS/oa-y-mcp-service"],
+      "env": {
+        "API_TOKEN": "your_token"
+      }
+    }
+  }
+}
+```
+
+---
+
+## How to get your API_TOKEN
+
+1. Go to [https://oa-y.com](https://oa-y.com) and log in as an **admin**.
+2. Open the **Admin Panel** and go to the **API Tokens** tab.
+3. Click **Create Token**, enter a name, and create the token.
+4. Copy the generated token and use it as the `API_TOKEN` environment variable.
+
+---
+
+## Build and Local Run
+
+1. **Build the project into a single file:**
    ```bash
-   npm install
+   npx esbuild index.js --bundle --platform=node --outfile=oa-y-mcp-service.js --format=esm
    ```
-2. Set environment variables (`APP_ENV=prod`, `API_TOKEN`)
-3. Start the server:
+2. **Run the service:**
    ```bash
-   node index.js
+   node oa-y-mcp-service.js
    ```
-   The server will start and listen on stdio for MCP requests.
+3. **Set the environment variable:**
+   ```bash
+   export API_TOKEN=your_token
+   ```
+   (on Windows: `set API_TOKEN=your_token`)
 
 ---
 
@@ -94,8 +144,9 @@
 
 ## Notes
 
-- Only `APP_ENV=prod` and `API_TOKEN` are required.
-- API URLs are hardcoded for production.
+- For local run, you only need the `oa-y-mcp-service.js` file and Node.js 18+.
+- You can also run via npx github:AdminRHS/oa-y-mcp-service with no dependencies.
+- Only `API_TOKEN` is required.
 - Platform: [https://oa-y.com](https://oa-y.com)
 
 ---
