@@ -7,6 +7,10 @@
     "oa-y-mcp-service": "./oa-y-mcp-service.js"
   },
   "type": "module",
+  "scripts": {
+    "build": "npx esbuild index.js --bundle --platform=node --outfile=oa-y-mcp-service.js --format=esm",
+    "dev": "node index.js"
+  },
   "files": [
     "oa-y-mcp-service.js"
   ],

@@ -44,8 +44,25 @@ const prodToolHandlers = {
     if (args.page) params.append('page', args.page.toString());
     if (args.limit) params.append('limit', args.limit.toString());
     if (args.search) params.append('search', args.search);
-    if (args.all) params.append('all', 'true');
     const response = await fetch(`${API_BASE_URL}/api/courses?${params}`, {
+      headers: { 'Authorization': `Bearer ${legacyJwt}` }
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const data = await response.json();
+    return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+  },
+  async get_categories() {
+    if (!legacyJwt) throw new Error('Not logged in. Please use login first.');
+    const response = await fetch(`${API_BASE_URL}/api/categories?all=true`, {
+      headers: { 'Authorization': `Bearer ${legacyJwt}` }
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const data = await response.json();
+    return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+  },
+  async get_profile() {
+    if (!legacyJwt) throw new Error('Not logged in. Please use login first.');
+    const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
       headers: { 'Authorization': `Bearer ${legacyJwt}` }
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -63,25 +80,84 @@ const legacyCourseInputSchema = {
     _id: { type: 'string', description: 'Course ID (for update)' },
     title: { type: 'string', description: 'Course title' },
     description: { type: 'string', description: 'Course description' },
-    category: { type: 'string', description: 'Course category' },
+    category: { type: 'string', description: 'Course category ID' },
+    instructor: { type: 'string', description: 'Course instructor ID' },
     difficulty: { type: 'string', description: 'Course difficulty' },
-    modules: { type: 'array', items: { type: 'object' }, default: [] },
+    modules: { 
+      type: 'array', 
+      items: { 
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Module title (REQUIRED)' },
+          content: { type: 'string', description: 'Module content (REQUIRED)' },
+          description: { type: 'string', description: 'Module description (OPTIONAL)' },
+          order: { type: 'number', description: 'Module order (REQUIRED)' },
+          lessons: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                title: { type: 'string', description: 'Lesson title (REQUIRED for all lessons)' },
+                content: { type: 'string', description: 'Lesson content (REQUIRED for standard content types, NOT for mixed type)' },
+                duration: { type: 'number', description: 'Duration in minutes (REQUIRED for all lessons)' },
+                type: { type: 'string', description: 'Lesson type (text, video, interactive) - REQUIRED for all lessons', default: 'text' },
+                contentType: { type: 'string', description: 'Content type (standard, labyrinth, flippingCards, mixed, memoryGame, tagCloud, rolePlayGame) - REQUIRED for all lessons', default: 'standard' },
+                videoUrl: { type: 'string', description: 'Video URL (for video type lessons)' },
+                contentBlocks: {
+                  type: 'array',
+                  description: 'REQUIRED for mixed content type, contains different content blocks',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      type: { type: 'string', description: 'Block type (REQUIRED for mixed content)' },
+                      content: { type: 'string', description: 'Block content (REQUIRED for mixed content)' },
+                      order: { type: 'number', description: 'Block order (REQUIRED for mixed content)' }
+                    },
+                    required: ['type', 'content', 'order']
+                  }
+                },
+                resources: {
+                  type: 'array',
+                  description: 'Optional resources for the lesson',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      title: { type: 'string', description: 'Resource title' },
+                      type: { type: 'string', description: 'Resource type' },
+                      description: { type: 'string', description: 'Resource description' },
+                      url: { type: 'string', description: 'Resource URL' }
+                    },
+                    required: ['title', 'type', 'description', 'url']
+                  }
+                },
+                practiceExercises: {
+                  type: 'array',
+                  description: 'Optional practice exercises for the lesson',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      title: { type: 'string', description: 'Exercise title' },
+                      description: { type: 'string', description: 'Exercise description' },
+                      codeSnippet: { type: 'string', description: 'Code snippet' },
+                      playgroundUrl: { type: 'string', description: 'Playground URL' }
+                    },
+                    required: ['title', 'description']
+                  }
+                }
+              },
+              required: ['title', 'duration', 'type', 'contentType']
+            }
+          }
+        },
+        required: ['title', 'content', 'order']
+      }
+    },
     image: { type: 'string' },
     duration: { type: 'number' }
   },
-  required: ['title', 'description', 'category', 'difficulty']
+  required: ['title', 'description', 'category', 'instructor', 'difficulty']
 };
-const legacyBatchImportInputSchema = {
-  type: 'object',
-  properties: {
-    courses: {
-      type: 'array',
-      items: legacyCourseInputSchema,
-      description: 'Array of courses to import'
-    }
-  },
-  required: ['courses']
-};
+
 
 // Legacy input schemas
 const legacyLoginInputSchema = {
@@ -97,9 +173,20 @@ const legacyGetCoursesInputSchema = {
   properties: {
     page: { type: 'number', description: 'Page number (default: 1)' },
     limit: { type: 'number', description: 'Number of courses per page (default: 10)' },
-    search: { type: 'string', description: 'Search by course name or description' },
-    all: { type: 'boolean', description: 'If true, returns all courses without pagination' }
+    search: { type: 'string', description: 'Search by course name or description' }
   }
+};
+
+const legacyGetCategoriesInputSchema = {
+  type: 'object',
+  properties: {
+    profile: { type: 'boolean', description: 'If true, returns profile categories' }
+  }
+};
+
+const legacyGetProfilesInputSchema = {
+  type: 'object',
+  properties: {}
 };
 
 const prodTools = [
@@ -114,6 +201,14 @@ const prodTools = [
   {
     name: 'login',
     inputSchema: legacyLoginInputSchema
+  },
+  {
+    name: 'get_categories',
+    inputSchema: legacyGetCategoriesInputSchema
+  },
+  {
+    name: 'get_profile',
+    inputSchema: legacyGetProfilesInputSchema
   }
 ];
 
