@@ -11894,7 +11894,7 @@ var prodToolHandlers = {
     }
   },
   async create_or_update_course(args) {
-    const response = await fetch(`${API_BASE_URL}/api-token/course`, {
+    const response = await fetch(`${API_BASE_URL}/api/course`, {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify(args)
