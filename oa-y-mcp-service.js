@@ -11872,7 +11872,7 @@ var StdioServerTransport = class {
 
 // index.js
 var API_TOKEN = process.env.API_TOKEN;
-var API_BASE_URL = "https://oa-y.com/api-tokens";
+var API_BASE_URL = "https://oa-y.com";
 var legacyJwt = null;
 var getHeaders = () => ({
   "Content-Type": "application/json",

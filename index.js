@@ -4,7 +4,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 const API_TOKEN = process.env.API_TOKEN;
-const API_BASE_URL = 'https://oa-y.com/api-tokens';
+const API_BASE_URL = 'https://oa-y.com';
 
 let legacyJwt = null;
 
