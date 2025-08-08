@@ -143,6 +143,9 @@ const prodTools = [
 ✅ Successfully updated existing course "JavaScript для початківців" (ID: 6895ed3062db728ad91c64ce) with 2 modules and 4 lessons
 ✅ Successfully created new course "Продвинутий курс веб-розробки" (ID: 6895f06062db728ad920d6ee) with 3 modules and 4 lessons
 ✅ Fixed duplicate modules issue - course now has correct structure with 3 modules instead of 6
+✅ Resolved service startup issue - API_TOKEN environment variable was missing
+⚠️ Investigating npx GitHub connection issue - server shows "disconnected" status
+✅ Fixed MCP configuration to use local service instead of npx GitHub version
 
 ## 📋 AI Rules for Course Creation
 
