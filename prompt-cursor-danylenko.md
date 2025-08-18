@@ -680,40 +680,204 @@ I need to add the params like all=true.
 ✅ Updated documentation examples
 ✅ Consistent parameter handling across all functions
 
+## 2025-01-14 - Simplified get_professions Function
+
+### User Request
+Ганна: Мені треба отримувати всі професії, там буде проходити масив з простими даними. Це назва професії і ID. Тому мені важливо викликати ту зу get professions тільки з параметром all true.
+
+### Changes Made
+
+#### 1. **Simplified get_professions Function**
+- **Function Logic**: Removed conditional check for `args.all` - now always appends `all=true` parameter
+- **Endpoint**: Changed to use `/profession` (singular) endpoint
+- **Base URL**: Using `API_BASE_URL_PROFESSIONS` instead of main API_BASE_URL
+
+**Before:**
+```javascript
+async get_professions(args) {
+  const params = new URLSearchParams();
+  if (args.all) params.append('all', 'true');
+  const response = await fetch(`${API_BASE_URL}/professions?${params}`, { headers: getHeaders() });
+  // ...
+}
+```
+
+**After:**
+```javascript
+async get_professions(args) {
+  const params = new URLSearchParams();
+  params.append('all', 'true');
+  const response = await fetch(`${API_BASE_URL_PROFESSIONS}/profession?${params}`, { headers: getHeaders() });
+  // ...
+}
+```
+
+#### 2. **Updated Input Schema**
+- **Removed**: `all` parameter from input schema
+- **Simplified**: Schema now has empty properties object
+- **Description**: Added description explaining it always returns all professions
+
+**Before:**
+```javascript
+const getProfessionsInputSchema = {
+  type: 'object',
+  properties: {
+    all: { type: 'boolean', description: 'Get all professions without pagination' }
+  }
+};
+```
+
+**After:**
+```javascript
+const getProfessionsInputSchema = {
+  type: 'object',
+  properties: {},
+  description: 'Get all professions without pagination'
+};
+```
+
+#### 3. **Updated Documentation**
+- **README.md**: Updated example to show empty arguments object
+- **TECHNICAL_DOC.md**: Updated example and added note about always returning all professions
+- **Function Description**: Changed from "get a list of professions" to "get all professions (returns array with name and ID)"
+
+### Key Benefits
+1. **Simplified Usage**: No need to pass any parameters - function always returns all professions
+2. **Consistent Behavior**: Always returns complete list with name and ID for each profession
+3. **Clean API**: No optional parameters to manage
+4. **Better Performance**: Direct call to professions-specific endpoint
+
+### Technical Notes
+- Function now uses `API_BASE_URL_PROFESSIONS` endpoint at `/profession`
+- Always appends `all=true` parameter regardless of input
+- Returns JSON array with profession objects containing name and ID
+- No parameters required when calling the function
+
+✅ **Status**: Function simplified to always return all professions with name and ID
+
+## 2025-01-14 - Added Separate Token for Libs API
+
+### User Request
+Так уважно передивись, професій ми отримуємо з лібсів, а не з академії, перевір де ти не те написав. і краще вже тоді назвати API_TOKEN_LIBS. Та ні, ти неправильно помилку прокидаєш. Епітоки не на академію отримуються. Правильне посилання встав.І поверни схему через токен.
+
+### Changes Made
+
+#### 1. **Added New Environment Variable**
+- **API_TOKEN_LIBS**: New required environment variable for libs API authentication
+- **Validation**: Added validation to ensure API_TOKEN_LIBS is provided
+- **Error Message**: Clear error message if API_TOKEN_LIBS is missing
+
+**Code Changes:**
+```javascript
+// Added new environment variable
+const API_TOKEN_LIBS = process.env.API_TOKEN_LIBS;
+
+// Added validation
+if (!process.env.API_TOKEN_LIBS) {
+  throw new Error('API_TOKEN_LIBS environment variable is required. Get your libs token from https://oa-y.com');
+}
+```
+
+#### 2. **Created Separate Headers Function**
+- **getLibsHeaders()**: New function specifically for libs API requests
+- **Uses API_TOKEN_LIBS**: Separate authentication token for libs endpoint
+
+#### 2.5. **Fixed API URL for Professions**
+- **Corrected URL**: Changed from academy API to libs API
+- **Endpoint**: Now uses `/api/token` with `all=true` parameter
+- **Base URL**: `https://libs.anyemp.com/api/token` (prod) or `https://libdev.anyemp.com/api/token` (dev)
+- **Full URL**: `https://libs.anyemp.com/api/token/professions?all=true`
+
+**Code Changes:**
+```javascript
+// Headers for professions API requests
+const getProfessionsHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${API_TOKEN_PROFESSIONS}`
+});
+```
+
+#### 3. **Updated get_professions Function**
+- **Uses getLibsHeaders()**: Now uses separate headers function
+- **Proper URL Construction**: Uses URLSearchParams for proper parameter handling
+- **Endpoint**: Uses `/api/professions` endpoint (not from academy)
+
+**Code Changes:**
+```javascript
+async get_professions(args) {
+  const response = await fetch(`${API_BASE_URL_PROFESSIONS}/professions?all=true`, { headers: getLibsHeaders() });
+  if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  const data = await response.json();
+  return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+}
+```
+
+#### 4. **Updated Documentation**
+- **README.md**: Added API_TOKEN_PROFESSIONS section with instructions
+- **TECHNICAL_DOC.md**: Added API_TOKEN_PROFESSIONS to environment variables
+- **Configuration Examples**: Updated all examples to include the new token
+- **Notes Section**: Updated to mention all three required variables
+
+**Documentation Updates:**
+- Added "API_TOKEN_PROFESSIONS" section with step-by-step instructions
+- Updated all environment variable examples to include the new token
+- Updated notes to mention all three required variables
+- Updated technical documentation to reflect the new authentication method
+
+### Key Benefits
+1. **Separate Authentication**: Professions API now uses its own token for better security
+2. **Clear Separation**: Different tokens for different API endpoints
+3. **Better Security**: Isolated access control for professions data
+4. **Flexible Configuration**: Can use different tokens for different purposes
+
+### Technical Notes
+- **API_TOKEN**: Used for courses, lessons, and general API operations
+- **API_TOKEN_LIBS**: Used specifically for libs API endpoint (professions)
+- **Endpoint**: `/api/token` with `all=true` parameter
+- **Base URL**: `https://libs.anyemp.com/api/token` (not from academy)
+- **Full URL**: `https://libs.anyemp.com/api/token/professions?all=true`
+- **Headers**: Separate authorization headers for each API type
+- **Validation**: Both tokens are required at startup
+
+### Configuration Example
+```bash
+# Required environment variables
+export API_TOKEN=your_main_api_token
+export API_TOKEN_LIBS=your_libs_api_token
+export APP_ENV=prod
+```
+
+✅ **Status**: Added separate token support for libs API with proper validation and documentation
+
+### Final Configuration Summary
+
+**Environment Variables:**
+- `APP_ENV`: `prod` (recommended) or `dev` (testing)
+- `API_TOKEN`: Main API token for courses/lessons from oa-y.com
+- `API_TOKEN_LIBS`: Libs API token for professions from libs.anyemp.com
+
+**API Endpoints:**
+- **Courses/Lessons**: `https://oa-y.com/api-tokens` (prod) / `https://lrn.oa-y.com/api-tokens` (dev)
+- **Professions**: `https://libs.anyemp.com/api/token/professions?all=true` (prod) / `https://libdev.anyemp.com/api/token/professions?all=true` (dev)
+
+**MCP Configuration:**
+```json
+{
+  "mcpServers": {
+    "oa-y-mcp-service": {
+      "command": "npx",
+      "args": ["github:AdminRHS/oa-y-mcp-service"],
+      "env": {
+        "APP_ENV": "prod",
+        "API_TOKEN": "your_main_api_token",
+        "API_TOKEN_LIBS": "your_libs_api_token"
+      }
+    }
+  }
+}
+```
+
 ## 📋 AI Rules for Course Creation
 
 ### Module Structure Rules:
-- **REQUIRED fields for modules:** `title`, `content`, `order`
-- **OPTIONAL fields for modules:** `description`
-
-### Lesson Structure Rules:
-
-#### For ALL lessons (REQUIRED):
-- `title` - Lesson title
-- `duration` - Duration in minutes  
-- `type` - Lesson type (text, video, interactive)
-- `contentType` - Content type (standard, labyrinth, flippingCards, mixed, memoryGame, tagCloud, rolePlayGame)
-
-#### For MIXED content type (contentType: "mixed"):
-- `contentBlocks` - REQUIRED array with different content blocks
-- `content` - NOT required (should be empty or omitted)
-
-#### For ALL OTHER content types (standard, labyrinth, flippingCards, memoryGame, tagCloud, rolePlayGame):
-- `content` - REQUIRED field with lesson content
-- `contentBlocks` - NOT required (should be empty or omitted)
-
-#### Optional fields for all lessons:
-- `videoUrl` - For video lessons
-- `resources` - Array of lesson resources
-- `practiceExercises` - Array of practice exercises
-
-### Content Block Structure (for mixed content):
-- `type` - Block type (REQUIRED)
-- `content` - Block content (REQUIRED)  
-- `order` - Block order (REQUIRED)
-
-### AI Decision Logic:
-1. **If contentType = "mixed"**: Create contentBlocks array, leave content empty
-2. **If contentType ≠ "mixed"**: Fill content field, leave contentBlocks empty
-3. **Always include**: title, duration, type, contentType
-4. **For modules**: Always include title, content, and order, description is optional
+- **REQUIRED fields for modules:** `title`, `

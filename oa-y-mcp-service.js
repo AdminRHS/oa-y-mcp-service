@@ -11909,16 +11909,24 @@ if (!process.env.APP_ENV) {
 if (!process.env.API_TOKEN) {
   throw new Error("API_TOKEN environment variable is required. Get your token from https://oa-y.com");
 }
+if (!process.env.API_TOKEN_LIBS) {
+  throw new Error("API_TOKEN_LIBS environment variable is required. Get your libs token from https://libs.anyemp.com");
+}
 var APP_ENV = process.env.APP_ENV;
 var API_TOKEN = process.env.API_TOKEN;
+var API_TOKEN_LIBS = process.env.API_TOKEN_LIBS;
 if (APP_ENV !== "dev" && APP_ENV !== "prod") {
   throw new Error(`Invalid APP_ENV value: "${APP_ENV}". Must be "dev" or "prod"`);
 }
 var API_BASE_URL = APP_ENV === "dev" ? "https://lrn.oa-y.com/api-tokens" : "https://oa-y.com/api-tokens";
-var API_BASE_URL_PROFESSIONS = APP_ENV === "dev" ? "https://libdev.anyemp.com/api" : "https://libs.anyemp.com/api";
+var API_BASE_URL_PROFESSIONS = APP_ENV === "dev" ? "https://libdev.anyemp.com/api/token" : "https://libs.anyemp.com/api/token";
 var getHeaders = () => ({
   "Content-Type": "application/json",
   "Authorization": `Bearer ${API_TOKEN}`
+});
+var getLibsHeaders = () => ({
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${API_TOKEN_LIBS}`
 });
 var toolHandlers = {
   async get_courses(args) {
@@ -12063,9 +12071,7 @@ var toolHandlers = {
     return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
   },
   async get_professions(args) {
-    const params = new URLSearchParams();
-    if (args.all) params.append("all", "true");
-    const response = await fetch(`${API_BASE_URL_PROFESSIONS}/professions?${params}`, { headers: getHeaders() });
+    const response = await fetch(`${API_BASE_URL_PROFESSIONS}/professions?all=true`, { headers: getLibsHeaders() });
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     const data = await response.json();
     return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
@@ -12224,9 +12230,8 @@ var updateLessonInputSchema = {
 };
 var getProfessionsInputSchema = {
   type: "object",
-  properties: {
-    all: { type: "boolean", description: "Get all professions without pagination" }
-  }
+  properties: {},
+  description: "Get all professions without pagination"
 };
 var availableTools = [
   { name: "get_courses", inputSchema: getCoursesInputSchema },

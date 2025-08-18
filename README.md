@@ -18,7 +18,8 @@ You can integrate this service as an external MCP server in your platform or AI 
       "args": ["github:AdminRHS/oa-y-mcp-service"],
       "env": {
         "APP_ENV": "prod",
-        "API_TOKEN": "your_token"
+        "API_TOKEN": "your_token",
+        "API_TOKEN_LIBS": "your_libs_token"
       }
     }
   }
@@ -38,6 +39,15 @@ You can integrate this service as an external MCP server in your platform or AI 
 3. Click **Create Token**, enter a name, and create the token.
 4. Copy the generated token and use it as the `API_TOKEN` environment variable.
 
+### API_TOKEN_LIBS
+**Required.** Your authentication token for the libs API (professions data from libs.anyemp.com).
+
+**How to get your API_TOKEN_LIBS:**
+1. Go to [https://libs.anyemp.com](https://libs.anyemp.com) and log in as an **admin**.
+2. Open the **Admin Panel** and go to the **API Tokens** tab.
+3. Click **Create Token**, enter a name (e.g., "Libs API"), and create the token.
+4. Copy the generated token and use it as the `API_TOKEN_LIBS` environment variable.
+
 ### APP_ENV
 **Required.** Sets the application environment.
 - `prod` - Production environment (recommended for all users)
@@ -55,7 +65,7 @@ You can integrate this service as an external MCP server in your platform or AI 
 - `get_lesson` — get a lesson by id
 - `create_lesson` — create a lesson (use this first to get lesson IDs)
 - `update_lesson` — update a lesson
-- `get_professions` — get a list of professions
+- `get_professions` — get all professions (returns array with name and ID)
 
 ---
 
@@ -114,7 +124,7 @@ You can integrate this service as an external MCP server in your platform or AI 
 ```json
 {
   "name": "get_professions",
-  "arguments": { "all": true }
+  "arguments": {}
 }
 ```
 
@@ -165,7 +175,7 @@ https://oa-y.com/courses/681230548967b4c2d5ba1e9b/modules/680114ed65861c900d25fd
 
 ## Notes
 
-- Both `APP_ENV` and `API_TOKEN` are required.
+- `APP_ENV`, `API_TOKEN`, and `API_TOKEN_LIBS` are required.
 - Production mode (`APP_ENV=prod`) is recommended for all users.
 - Development mode (`APP_ENV=dev`) is for testing only.
 - API URLs are automatically selected based on APP_ENV.
@@ -192,9 +202,10 @@ https://oa-y.com/courses/681230548967b4c2d5ba1e9b/modules/680114ed65861c900d25fd
 3. **Set the environment variables:**
    ```bash
    export API_TOKEN=your_token
+   export API_TOKEN_LIBS=your_libs_token
    export APP_ENV=prod
    ```
-   (on Windows: `set API_TOKEN=your_token` and `set APP_ENV=prod`)
+   (on Windows: `set API_TOKEN=your_token`, `set API_TOKEN_LIBS=your_libs_token`, and `set APP_ENV=prod`)
 
 ### Quick Start (development)
 
@@ -207,6 +218,7 @@ https://oa-y.com/courses/681230548967b4c2d5ba1e9b/modules/680114ed65861c900d25fd
 2. Set environment variables:
    - `APP_ENV=dev`
    - `API_TOKEN=your_token`
+   - `API_TOKEN_LIBS=your_libs_token`
 3. Start the service:
    ```bash
    node index.js
@@ -224,7 +236,8 @@ https://oa-y.com/courses/681230548967b4c2d5ba1e9b/modules/680114ed65861c900d25fd
       "args": ["/path/to/oa-y-mcp-service/oa-y-mcp-service.js"],
       "env": {
         "APP_ENV": "prod",
-        "API_TOKEN": "your_token"
+        "API_TOKEN": "your_token",
+        "API_TOKEN_LIBS": "your_libs_token"
       }
     }
   }

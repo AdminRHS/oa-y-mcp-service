@@ -25,8 +25,13 @@
 
 - `APP_ENV` — set to `prod` for production mode (recommended for all users), or `dev` for development mode (for testing only)
 - `API_TOKEN` — authorization token for all requests
+- `API_TOKEN_LIBS` — authorization token for libs API requests (professions data from libs.anyemp.com)
 
 > **Note:** API_BASE_URL and API_BASE_URL_PROFESSIONS are hardcoded in the code and selected automatically based on APP_ENV. You do not need to provide them as environment variables.
+
+**API Endpoints:**
+- **Courses/Lessons**: `https://oa-y.com/api-tokens` (prod) / `https://lrn.oa-y.com/api-tokens` (dev)
+- **Professions**: `https://libs.anyemp.com/api/token` (prod) / `https://libdev.anyemp.com/api/token` (dev)
 
 ---
 
@@ -49,7 +54,7 @@
 - `get_lesson` — get a lesson by id
 - `create_lesson` — create a lesson (use this first to get lesson IDs)
 - `update_lesson` — update a lesson
-- `get_professions` — get a list of professions
+- `get_professions` — get all professions (returns array with name and ID)
 
 > **Note:** All tools are available in both production and development modes. Production mode is recommended for all users, development mode is for testing only.
 
@@ -69,11 +74,25 @@
 
 ## Server Startup
 
+The server starts with the following configuration:
+
+1. **Environment Validation**: Checks for required environment variables (`APP_ENV`, `API_TOKEN`, `API_TOKEN_LIBS`)
+2. **API URL Selection**: Automatically selects URLs based on APP_ENV
+3. **MCP Server Initialization**: Creates server with tool handlers
+4. **Transport Setup**: Uses stdio transport for MCP communication
+
+### Local Development
+
 1. Install dependencies:
    ```bash
    npm install
    ```
-2. Set environment variables (`APP_ENV=prod`, `API_TOKEN`)
+2. Set environment variables:
+   ```bash
+   export APP_ENV=prod
+   export API_TOKEN=your_main_api_token
+   export API_TOKEN_LIBS=your_libs_api_token
+   ```
 3. Start the server:
    ```bash
    node index.js
@@ -81,6 +100,38 @@
    The server will start and listen on stdio for MCP requests.
 
 **For testing:** Use `APP_ENV=dev` for testing purposes.
+
+## Configuration Schema
+
+### Required Environment Variables
+```bash
+# Production mode (recommended)
+export APP_ENV=prod
+export API_TOKEN=your_main_api_token
+export API_TOKEN_LIBS=your_libs_api_token
+
+# Development mode (for testing)
+export APP_ENV=dev
+export API_TOKEN=your_main_api_token
+export API_TOKEN_LIBS=your_libs_api_token
+```
+
+### MCP Configuration
+```json
+{
+  "mcpServers": {
+    "oa-y-mcp-service": {
+      "command": "npx",
+      "args": ["github:AdminRHS/oa-y-mcp-service"],
+      "env": {
+        "APP_ENV": "prod",
+        "API_TOKEN": "your_main_api_token",
+        "API_TOKEN_LIBS": "your_libs_api_token"
+      }
+    }
+  }
+}
+```
 
 ---
 
@@ -135,11 +186,12 @@
 ```
 
 ### Get Professions
+**Always returns all professions with name and ID.**
 
 ```json
 {
   "name": "get_professions",
-  "arguments": { "all": true }
+  "arguments": {}
 }
 ```
 

@@ -12,8 +12,13 @@ if (!process.env.API_TOKEN) {
   throw new Error('API_TOKEN environment variable is required. Get your token from https://oa-y.com');
 }
 
+if (!process.env.API_TOKEN_LIBS) {
+  throw new Error('API_TOKEN_LIBS environment variable is required. Get your libs token from https://libs.anyemp.com');
+}
+
 const APP_ENV = process.env.APP_ENV;
 const API_TOKEN = process.env.API_TOKEN;
+const API_TOKEN_LIBS = process.env.API_TOKEN_LIBS;
 
 // Validate APP_ENV value
 if (APP_ENV !== 'dev' && APP_ENV !== 'prod') {
@@ -26,13 +31,19 @@ const API_BASE_URL = APP_ENV === 'dev'
   : 'https://oa-y.com/api-tokens';
 
 const API_BASE_URL_PROFESSIONS = APP_ENV === 'dev'
-  ? 'https://libdev.anyemp.com/api'
-  : 'https://libs.anyemp.com/api';
+  ? 'https://libdev.anyemp.com/api/token'
+  : 'https://libs.anyemp.com/api/token';
 
 // Headers for API requests
 const getHeaders = () => ({
   'Content-Type': 'application/json',
   'Authorization': `Bearer ${API_TOKEN}`
+});
+
+// Headers for libs API requests
+const getLibsHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${API_TOKEN_LIBS}`
 });
 
 // Tool handlers
@@ -177,9 +188,7 @@ const toolHandlers = {
     return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
   },
   async get_professions(args) {
-    const params = new URLSearchParams();
-    if (args.all) params.append('all', 'true');
-    const response = await fetch(`${API_BASE_URL_PROFESSIONS}/professions?${params}`, { headers: getHeaders() });
+    const response = await fetch(`${API_BASE_URL_PROFESSIONS}/professions?all=true`, { headers: getLibsHeaders() });
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     const data = await response.json();
     return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
@@ -341,9 +350,8 @@ const updateLessonInputSchema = {
 };
 const getProfessionsInputSchema = {
   type: 'object',
-  properties: {
-    all: { type: 'boolean', description: 'Get all professions without pagination' }
-  }
+  properties: {},
+  description: 'Get all professions without pagination'
 };
 
 // Available tools
