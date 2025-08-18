@@ -12063,7 +12063,7 @@ var toolHandlers = {
     return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
   },
   async get_professions() {
-    const response = await fetch(`${API_BASE_URL_PROFESSIONS}/profession`, { headers: getHeaders() });
+    const response = await fetch(`${API_BASE_URL_PROFESSIONS}/profession?all=true`, { headers: getHeaders() });
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     const data = await response.json();
     return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
