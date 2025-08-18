@@ -139,7 +139,7 @@
 ```json
 {
   "name": "get_professions",
-  "arguments": {}
+  "arguments": { "all": true }
 }
 ```
 

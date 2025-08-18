@@ -176,8 +176,10 @@ const toolHandlers = {
     const data = await response.json();
     return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
   },
-  async get_professions() {
-    const response = await fetch(`${API_BASE_URL_PROFESSIONS}/profession?all=true`, { headers: getHeaders() });
+  async get_professions(args) {
+    const params = new URLSearchParams();
+    if (args.all) params.append('all', 'true');
+    const response = await fetch(`${API_BASE_URL_PROFESSIONS}/professions?${params}`, { headers: getHeaders() });
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     const data = await response.json();
     return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
@@ -339,7 +341,9 @@ const updateLessonInputSchema = {
 };
 const getProfessionsInputSchema = {
   type: 'object',
-  properties: {}
+  properties: {
+    all: { type: 'boolean', description: 'Get all professions without pagination' }
+  }
 };
 
 // Available tools

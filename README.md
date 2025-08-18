@@ -114,7 +114,7 @@ You can integrate this service as an external MCP server in your platform or AI 
 ```json
 {
   "name": "get_professions",
-  "arguments": {}
+  "arguments": { "all": true }
 }
 ```
 
