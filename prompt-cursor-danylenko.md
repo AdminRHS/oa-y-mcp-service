@@ -147,6 +147,436 @@ const prodTools = [
 ⚠️ Investigating npx GitHub connection issue - server shows "disconnected" status
 ✅ Fixed MCP configuration to use local service instead of npx GitHub version
 
+## User Request (Latest)
+Let's update my README file. I need to add into ENV APP_ENV prod or dev
+
+## My Actions (Latest)
+
+### Updated README.md with APP_ENV Environment Variable
+- Added `APP_ENV` to the MCP server configuration example
+- Updated the "Quick Start" section to include APP_ENV environment variable setup
+- Added a dedicated "Environment Variables" section with detailed information about both API_TOKEN and APP_ENV
+- Updated the notes section to mention APP_ENV options
+
+### Changes Made:
+1. **MCP Server Configuration**: Added `"APP_ENV": "prod"` to the env section
+2. **Quick Start Section**: Updated to show both API_TOKEN and APP_ENV setup for Unix and Windows
+3. **Environment Variables Section**: Created new section with:
+   - API_TOKEN (Required) with instructions on how to obtain it
+   - APP_ENV (Optional) with options: `prod` (production, default) or `dev` (development)
+4. **Notes Section**: Updated to clarify that APP_ENV can be set to prod or dev
+
+### Final Status
+✅ README.md successfully updated with APP_ENV environment variable documentation
+✅ All configuration examples now include APP_ENV
+✅ Clear instructions provided for both Unix and Windows environments
+
+## User Request (Latest)
+Let's update the API_BASE_URL and API_BASE_URL_PROFESSIONS. It must depend on the API and the vi variable. If they have this value that already ends, and for prod, another.
+
+## My Actions (Latest)
+
+### Updated API URLs to be Environment-Dependent
+- Modified `APP_ENV` to read from `process.env.APP_ENV` with 'prod' as default
+- Updated `API_BASE_URL` to use different URLs based on environment:
+  - **dev**: `https://lrn.oa-y.com/api-tokens`
+  - **prod**: `https://oa-y.com/api-tokens`
+- Updated `API_BASE_URL_PROFESSIONS` to use different URLs based on environment:
+  - **dev**: `https://libdev.anyemp.com/api`
+  - **prod**: `https://lib.anyemp.com/api`
+
+### Code Changes Made:
+```javascript
+const APP_ENV = process.env.APP_ENV || 'prod';
+const API_TOKEN = process.env.API_TOKEN || '';
+
+// API URLs based on environment
+const API_BASE_URL = APP_ENV === 'dev' 
+  ? 'https://lrn.oa-y.com/api-tokens'
+  : 'https://oa-y.com/api-tokens';
+
+const API_BASE_URL_PROFESSIONS = APP_ENV === 'dev'
+  ? 'https://libdev.anyemp.com/api'
+  : 'https://lib.anyemp.com/api';
+```
+
+### Final Status
+✅ API URLs now dynamically change based on APP_ENV environment variable
+✅ Development environment uses dev URLs (lrn.oa-y.com, libdev.anyemp.com)
+✅ Production environment uses production URLs (oa-y.com, lib.anyemp.com)
+✅ Default environment is 'prod' if APP_ENV is not set
+
+## User Request (Latest)
+If I don't have APP_ENV or API_TOKEN, I need to get errors
+
+## My Actions (Latest)
+
+### Added Required Environment Variable Validation
+- Added validation to check if `APP_ENV` environment variable is provided
+- Added validation to check if `API_TOKEN` environment variable is provided
+- Added validation to ensure `APP_ENV` value is either "dev" or "prod"
+- Updated README.md to reflect that both environment variables are now required
+
+### Code Changes Made:
+```javascript
+// Validate required environment variables
+if (!process.env.APP_ENV) {
+  throw new Error('APP_ENV environment variable is required. Set it to "dev" or "prod"');
+}
+
+if (!process.env.API_TOKEN) {
+  throw new Error('API_TOKEN environment variable is required. Get your token from https://oa-y.com');
+}
+
+const APP_ENV = process.env.APP_ENV;
+const API_TOKEN = process.env.API_TOKEN;
+
+// Validate APP_ENV value
+if (APP_ENV !== 'dev' && APP_ENV !== 'prod') {
+  throw new Error(`Invalid APP_ENV value: "${APP_ENV}". Must be "dev" or "prod"`);
+}
+```
+
+### Documentation Updates:
+- Updated README.md to mark both `API_TOKEN` and `APP_ENV` as required
+- Removed references to default values since both are now mandatory
+- Updated notes section to clarify that both environment variables are required
+
+### Final Status
+✅ Service now throws clear error messages when environment variables are missing
+✅ APP_ENV validation ensures only "dev" or "prod" values are accepted
+✅ API_TOKEN validation prevents service from starting without authentication
+✅ Documentation updated to reflect new requirements
+✅ Better error handling and user experience
+
+## User Request (Latest)
+Let's update documentation: ReadREADME file and TECHNICAL_DOC file. Be careful, you can use these files as examples.@c:\Projects\RH\lrn-mcp-service\README.md @c:\Projects\RH\lrn-mcp-service\TECHNICAL_DOC.md
+
+## My Actions (Latest)
+
+### Updated README.md
+- Restructured to match lrn-mcp-service format with proper sections
+- Added "Quick Start (local)" and "Quick Start (development)" sections
+- Updated "Integration as MCP Server" with both local node and npx GitHub configurations
+- Reorganized "MCP Tools" section to show both production and development modes
+- Added comprehensive "Example Requests" section with examples for both modes
+- Updated "Notes" section to reflect current state
+- Improved overall structure and readability
+
+### Updated TECHNICAL_DOC.md
+- Completely restructured to match lrn-mcp-service technical documentation format
+- Updated title and description to cover both dev and prod modes
+- Added comprehensive "Architecture" section explaining the dual-mode system
+- Updated "Environment Variables" section to include APP_ENV
+- Added "Data Schemas" section describing the data structures
+- Reorganized "MCP Tools" section with clear separation between dev and prod modes
+- Added "Server Startup" section with instructions for both modes
+- Added "Error Handling" section
+- Removed redundant sections and improved overall technical documentation quality
+
+### Key Improvements:
+1. **Better Structure**: Both files now follow a clear, logical structure
+2. **Dual Mode Support**: Documentation clearly explains both development and production modes
+3. **Comprehensive Examples**: Added examples for both modes with proper JSON formatting
+4. **Clear Instructions**: Step-by-step instructions for different deployment scenarios
+5. **Technical Details**: Added architecture and data schema information
+6. **Error Handling**: Documented error handling and response formats
+
+### Final Status
+✅ README.md completely restructured and updated with comprehensive information
+✅ TECHNICAL_DOC.md completely rewritten to match professional technical documentation standards
+✅ Both files now properly document the dual-mode (dev/prod) functionality
+✅ Clear separation between development and production features
+✅ Professional documentation structure matching industry standards
+
+## User Request (Latest)
+I need to put the current MCP settings in the top of my README file. For local development, please put in a bit later.
+
+## My Actions (Latest)
+
+### Reorganized README.md Structure
+- Moved MCP integration configuration to the top of the file (right after the title)
+- Moved local development instructions to a separate "Local Development" section at the bottom
+- Prioritized the most important information (MCP configuration) for immediate visibility
+- Kept development instructions accessible but not cluttering the main content
+
+### Changes Made:
+1. **Top Priority**: MCP Server integration configuration now appears immediately after the title
+2. **Logical Flow**: Environment Variables → MCP Tools → Example Requests → Notes → Local Development
+3. **Better UX**: Users can quickly find the MCP configuration they need
+4. **Cleaner Structure**: Development instructions are separated but still easily accessible
+
+### Final Status
+✅ README.md structure reorganized with MCP settings at the top
+✅ Local development instructions moved to dedicated section
+✅ Better user experience with priority information first
+✅ Maintained all content while improving organization
+
+## User Request (Latest)
+Look on full logic, I don't have Rahim tools for now and please update_full_docs.Depends on my index.js file
+
+## My Actions (Latest)
+
+### Analyzed Current Implementation
+- Examined the actual index.js file to understand the current implementation
+- Found that only development mode tools (devToolHandlers) are implemented
+- No production mode tools (prodToolHandlers) exist in the current code
+- Removed references to non-existent production mode functionality
+
+### Updated README.md
+- Changed all MCP configuration examples to use `APP_ENV=dev`
+- Updated API_TOKEN instructions to point to lrn.oa-y.com instead of oa-y.com
+- Removed production mode references and clarified that only dev mode is supported
+- Updated MCP Tools section to show only available tools
+- Updated example requests to match actual available tools
+- Updated URL examples to use lrn.oa-y.com domain
+- Updated local development instructions to use `APP_ENV=dev`
+
+### Updated TECHNICAL_DOC.md
+- Updated title and description to reflect current implementation
+- Removed all references to production mode and dual-mode architecture
+- Updated architecture section to reflect single-mode implementation
+- Updated environment variables to clarify that only dev mode is supported
+- Removed production mode sections and examples
+- Updated API interaction section to reflect current capabilities
+- Simplified server startup section to only show development mode
+- Updated example requests to match actual available tools
+
+### Key Changes Made:
+1. **Removed Production Mode**: All references to production mode tools removed
+2. **Updated URLs**: Changed from oa-y.com to lrn.oa-y.com for all examples
+3. **Simplified Architecture**: Removed dual-mode complexity
+4. **Updated Examples**: All examples now match actual implemented tools
+5. **Clarified Status**: Made it clear that only development mode is currently supported
+
+### Final Status
+✅ Documentation now accurately reflects the current implementation
+✅ Removed all references to non-existent production mode tools
+✅ Updated all URLs and examples to match actual functionality
+✅ Simplified documentation to focus on what's actually available
+✅ Clear indication that production mode is not yet implemented
+
+## User Request (Latest)
+Now please add the APP_ENV=prod in the docs
+
+## My Actions (Latest)
+
+### Updated Documentation to Include Production Mode
+- Updated both README.md and TECHNICAL_DOC.md to include `APP_ENV=prod` configuration
+- Changed MCP configuration examples to use production mode as the default
+- Updated API_TOKEN instructions to point to oa-y.com for production
+- Added production mode sections in MCP Tools documentation
+- Updated URL examples to use oa-y.com domain for production
+- Added production mode startup instructions
+
+### Changes Made to README.md:
+1. **MCP Configuration**: Changed examples to use `APP_ENV=prod`
+2. **API_TOKEN Instructions**: Updated to point to oa-y.com
+3. **MCP Tools**: Added separate sections for production and development modes
+4. **Example Requests**: Added update_course example
+5. **URL Examples**: Updated to use oa-y.com domain
+6. **Notes**: Clarified that production mode is recommended
+7. **Local Development**: Updated to use `APP_ENV=prod` as default
+
+### Changes Made to TECHNICAL_DOC.md:
+1. **Title**: Updated to cover both development and production modes
+2. **Overview**: Updated to reflect dual-mode functionality
+3. **Architecture**: Added production mode tool handlers
+4. **Environment Variables**: Added production mode option
+5. **Data Schemas**: Clarified which features are dev-only
+6. **MCP Tools**: Added separate sections for both modes
+7. **API Interaction**: Added production mode specifics
+8. **Server Startup**: Added production mode instructions
+9. **Example Requests**: Added update_course example
+
+### Final Status
+✅ Both documentation files now properly support APP_ENV=prod
+✅ Production mode is set as the recommended default
+✅ Clear separation between development and production modes
+✅ Updated all URLs and examples for production environment
+✅ Comprehensive documentation for both modes
+
+## User Request (Latest)
+I already have done both development and production mods. So description must be for production first. And be careful about architecture and the other paths.
+
+## My Actions (Latest)
+
+### Updated Documentation to Prioritize Production Mode
+- Reorganized both README.md and TECHNICAL_DOC.md to prioritize production mode
+- Updated architecture description to reflect that both modes are fully implemented
+- Corrected data schemas to show that all features are available in both modes
+- Reordered sections to show production mode first
+
+### Changes Made to README.md:
+1. **MCP Tools**: Reordered to show Production Mode first, then Development Mode
+2. **Tool Descriptions**: Updated to show that both modes have the same functionality
+
+### Changes Made to TECHNICAL_DOC.md:
+1. **Architecture**: Updated to reflect that both prodToolHandlers and devToolHandlers are fully implemented
+2. **Data Schemas**: Removed "(dev only)" restrictions since both modes support all features
+3. **MCP Tools**: Reordered to show Production Mode first with full tool descriptions
+4. **API Interaction**: Updated to clarify that both modes provide the same functionality
+5. **Server Startup**: Reordered to show Production Mode instructions first
+
+### Key Corrections:
+1. **Dual Mode Implementation**: Both development and production modes are fully implemented
+2. **Same Functionality**: Both modes provide identical tool sets and capabilities
+3. **Different Endpoints**: Only difference is the API endpoints used (oa-y.com vs lrn.oa-y.com)
+4. **Production Priority**: Documentation now prioritizes production mode as the primary option
+5. **Accurate Architecture**: Correctly reflects the dual-mode implementation
+
+### Final Status
+✅ Documentation now correctly prioritizes production mode
+✅ Architecture accurately reflects dual-mode implementation
+✅ Both modes shown as having identical functionality
+✅ Production mode presented as the primary option
+✅ Clear distinction between endpoints while maintaining feature parity
+
+## User Request (Latest)
+I already have the same logic for both development and production. So about development, you need to put information only for developers. For other users, we need to display both information. I mean, all functionalities are the same but app and ve dev only for developres. Also, you don't need to separate and add some description about ProDNV, it is the same.The dev only for testing.
+
+## My Actions (Latest)
+
+### Simplified Documentation to Focus on Production Mode
+- Removed separate sections for production and development modes since functionality is identical
+- Simplified MCP Tools section to show tools once without mode separation
+- Updated environment variables to clarify that production is for all users, development is for developers only
+- Streamlined server startup instructions to focus on production mode
+- Added brief developer notes where appropriate
+
+### Changes Made to README.md:
+1. **MCP Tools**: Removed separate production/development sections, listed tools once
+2. **Environment Variables**: Clarified that production is recommended for all users, dev is for developers only
+3. **Notes**: Simplified to focus on production mode with brief developer note
+4. **Development Section**: Added "For developers only" label to clarify audience
+
+### Changes Made to TECHNICAL_DOC.md:
+1. **Overview**: Simplified to focus on OA-Y platform interaction
+2. **Environment Variables**: Updated to prioritize production mode
+3. **MCP Tools**: Removed mode separation, listed tools once with note about both modes
+4. **API Interaction**: Simplified to focus on production with brief dev note
+5. **Server Startup**: Streamlined to show production setup with brief developer note
+
+### Key Simplifications:
+1. **Single Tool List**: All tools listed once since functionality is identical
+2. **Production Focus**: Documentation primarily targets regular users
+3. **Developer Notes**: Brief mentions of development mode where needed
+4. **Clear Audience**: Production for all users, development for developers only
+5. **Simplified Structure**: Removed redundant mode-specific sections
+
+### Final Status
+✅ Documentation simplified to focus on production mode for regular users
+✅ Development mode clearly marked as "for developers only"
+✅ Removed redundant mode-specific sections since functionality is identical
+✅ Streamlined structure while maintaining all necessary information
+✅ Clear distinction between user audiences (regular users vs developers)
+
+## User Request (Latest)
+The main variants to integrate is via NPX from GitHub. Example configuration for local node, please put a bit later where you display all local development.
+
+## My Actions (Latest)
+
+### Reorganized Integration Configuration
+- Moved npx GitHub integration to be the main/primary configuration option
+- Removed the local node configuration from the main integration section
+- Added local node configuration to the local development section
+- Simplified the main integration section to focus on the recommended approach
+
+### Changes Made to README.md:
+1. **Main Integration Section**: Now shows only npx GitHub configuration as the primary option
+2. **Removed Local Node**: Moved local node configuration out of the main integration section
+3. **Added Local Development Section**: Created "Local Node Integration" subsection in the local development area
+4. **Clear Separation**: Main integration for regular users, local options for developers
+
+### Key Improvements:
+1. **Primary Focus**: npx GitHub integration is now the main recommended approach
+2. **Logical Organization**: Local development options grouped together
+3. **Clear Audience**: Main section for regular users, local section for developers
+4. **Simplified Main Section**: Less cluttered primary integration documentation
+5. **Better Flow**: Users see the recommended approach first, local options later
+
+### Final Status
+✅ npx GitHub integration prioritized as the main integration method
+✅ Local node configuration moved to local development section
+✅ Clear separation between main integration and local development options
+✅ Better organization for different user types (regular users vs developers)
+✅ Simplified main integration section with focused recommendations
+
+## User Request (Latest)
+I don't have devToolHandlers. I think we can rename all main things because I don't need separate dev or prod naming.
+
+## My Actions (Latest)
+
+### Simplified Architecture Documentation
+- Removed references to separate `devToolHandlers` and `prodToolHandlers`
+- Updated architecture to reflect single tool handlers implementation
+- Simplified environment variable descriptions
+- Removed "for developers only" language, changed to "for testing only"
+
+### Changes Made to README.md:
+1. **Environment Variables**: Changed "for developers only" to "for testing only"
+2. **Notes Section**: Updated to reflect testing purpose instead of developer-specific
+3. **Development Section**: Changed "For developers only" to "For testing"
+
+### Changes Made to TECHNICAL_DOC.md:
+1. **Architecture**: Updated to show single `toolHandlers` instead of separate dev/prod handlers
+2. **Environment Variables**: Changed "for developers only" to "for testing only"
+3. **MCP Tools Note**: Simplified to remove "purposes" redundancy
+4. **Server Startup**: Changed "For developers" to "For testing"
+
+### Key Simplifications:
+1. **Single Implementation**: Removed references to separate dev/prod tool handlers
+2. **Unified Architecture**: Shows single tool handlers with environment-based URL selection
+3. **Testing Focus**: Development mode clearly marked as "for testing only"
+4. **Simplified Language**: Removed developer-specific terminology
+5. **Accurate Description**: Reflects actual implementation with single tool handlers
+
+### Final Status
+✅ Removed separate dev/prod tool handlers references
+✅ Simplified architecture to reflect single implementation
+✅ Changed "developers only" to "testing only" throughout
+✅ Updated documentation to match actual code structure
+✅ Cleaner, more accurate technical documentation
+
+## User Request (Latest)
+So I think we need to update the index.js file. And I'm sure that you need to node-fetch.
+
+## My Actions (Latest)
+
+### Updated index.js File
+- Added `node-fetch` import to the top of the file
+- Renamed `devToolHandlers` to `toolHandlers` to remove dev-specific naming
+- Renamed `newTools` to `availableTools` for better clarity
+- Updated all references to use the new naming convention
+- Updated tool handler references to use `toolHandlers` instead of `devToolHandlers`
+
+### Updated package.json
+- Added `node-fetch` dependency (version 3.3.2)
+- Added `@modelcontextprotocol/sdk` dependency (version 0.4.0)
+- Added proper dependencies section to package.json
+
+### Code Changes Made:
+1. **Added Import**: `import fetch from 'node-fetch';`
+2. **Renamed Variables**:
+   - `devToolHandlers` → `toolHandlers`
+   - `newTools` → `availableTools`
+3. **Updated References**: All tool handler calls now use `toolHandlers`
+4. **Added Dependencies**: Both node-fetch and MCP SDK in package.json
+
+### Key Improvements:
+1. **Proper Dependencies**: Added missing node-fetch dependency
+2. **Consistent Naming**: Removed dev-specific naming throughout
+3. **Better Clarity**: `availableTools` is more descriptive than `newTools`
+4. **Unified Structure**: Single `toolHandlers` for both environments
+5. **Complete Setup**: All dependencies properly declared
+
+### Final Status
+✅ Added node-fetch import and dependency
+✅ Renamed devToolHandlers to toolHandlers
+✅ Updated all variable names for consistency
+✅ Added proper dependencies to package.json
+✅ Code now matches the simplified documentation structure
+
 ## 📋 AI Rules for Course Creation
 
 ### Module Structure Rules:

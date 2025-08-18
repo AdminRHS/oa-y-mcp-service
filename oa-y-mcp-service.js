@@ -34,7 +34,7 @@ var require_uri_all = __commonJS({
   "node_modules/uri-js/dist/es5/uri.all.js"(exports, module) {
     (function(global, factory) {
       typeof exports === "object" && typeof module !== "undefined" ? factory(exports) : typeof define === "function" && define.amd ? define(["exports"], factory) : factory(global.URI = global.URI || {});
-    })(exports, function(exports2) {
+    })(exports, (function(exports2) {
       "use strict";
       function merge() {
         for (var _len = arguments.length, sets = Array(_len), _key = 0; _key < _len; _key++) {
@@ -94,7 +94,7 @@ var require_uri_all = __commonJS({
       }
       var URI_PROTOCOL = buildExps(false);
       var IRI_PROTOCOL = buildExps(true);
-      var slicedToArray = /* @__PURE__ */ function() {
+      var slicedToArray = /* @__PURE__ */ (function() {
         function sliceIterator(arr, i) {
           var _arr = [];
           var _n = true;
@@ -126,7 +126,7 @@ var require_uri_all = __commonJS({
             throw new TypeError("Invalid attempt to destructure non-iterable instance");
           }
         };
-      }();
+      })();
       var toConsumableArray = function(arr) {
         if (Array.isArray(arr)) {
           for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) arr2[i] = arr[i];
@@ -1042,7 +1042,7 @@ var require_uri_all = __commonJS({
       exports2.escapeComponent = escapeComponent;
       exports2.unescapeComponent = unescapeComponent;
       Object.defineProperty(exports2, "__esModule", { value: true });
-    });
+    }));
   }
 });
 
@@ -1639,7 +1639,7 @@ var require_fast_json_stable_stringify = __commonJS({
       if (!opts) opts = {};
       if (typeof opts === "function") opts = { cmp: opts };
       var cycles = typeof opts.cycles === "boolean" ? opts.cycles : false;
-      var cmp = opts.cmp && /* @__PURE__ */ function(f) {
+      var cmp = opts.cmp && /* @__PURE__ */ (function(f) {
         return function(node) {
           return function(a, b) {
             var aobj = { key: a, value: node[a] };
@@ -1647,9 +1647,9 @@ var require_fast_json_stable_stringify = __commonJS({
             return f(aobj, bobj);
           };
         };
-      }(opts.cmp);
+      })(opts.cmp);
       var seen = [];
-      return function stringify(node) {
+      return (function stringify(node) {
         if (node && node.toJSON && typeof node.toJSON === "function") {
           node = node.toJSON();
         }
@@ -1682,7 +1682,7 @@ var require_fast_json_stable_stringify = __commonJS({
         }
         seen.splice(seenIndex, 1);
         return "{" + out + "}";
-      }(data);
+      })(data);
     };
   }
 });
@@ -10275,14 +10275,14 @@ var ostring = () => stringType().optional();
 var onumber = () => numberType().optional();
 var oboolean = () => booleanType().optional();
 var coerce = {
-  string: (arg) => ZodString.create({ ...arg, coerce: true }),
-  number: (arg) => ZodNumber.create({ ...arg, coerce: true }),
-  boolean: (arg) => ZodBoolean.create({
+  string: ((arg) => ZodString.create({ ...arg, coerce: true })),
+  number: ((arg) => ZodNumber.create({ ...arg, coerce: true })),
+  boolean: ((arg) => ZodBoolean.create({
     ...arg,
     coerce: true
-  }),
-  bigint: (arg) => ZodBigInt.create({ ...arg, coerce: true }),
-  date: (arg) => ZodDate.create({ ...arg, coerce: true })
+  })),
+  bigint: ((arg) => ZodBigInt.create({ ...arg, coerce: true })),
+  date: ((arg) => ZodDate.create({ ...arg, coerce: true }))
 };
 var NEVER = INVALID;
 
@@ -10570,11 +10570,19 @@ var TextResourceContentsSchema = ResourceContentsSchema.extend({
    */
   text: external_exports.string()
 });
+var Base64Schema = external_exports.string().refine((val) => {
+  try {
+    atob(val);
+    return true;
+  } catch (_a) {
+    return false;
+  }
+}, { message: "Invalid Base64 string" });
 var BlobResourceContentsSchema = ResourceContentsSchema.extend({
   /**
    * A base64-encoded string representing the binary data of the item.
    */
-  blob: external_exports.string().base64()
+  blob: Base64Schema
 });
 var ResourceSchema = BaseMetadataSchema.extend({
   /**
@@ -10737,7 +10745,7 @@ var ImageContentSchema = external_exports.object({
   /**
    * The base64-encoded image data.
    */
-  data: external_exports.string().base64(),
+  data: Base64Schema,
   /**
    * The MIME type of the image. Different providers may support different image types.
    */
@@ -10753,7 +10761,7 @@ var AudioContentSchema = external_exports.object({
   /**
    * The base64-encoded audio data.
    */
-  data: external_exports.string().base64(),
+  data: Base64Schema,
   /**
    * The MIME type of the audio. Different providers may support different audio types.
    */
@@ -11240,6 +11248,7 @@ var Protocol = class {
     this._responseHandlers = /* @__PURE__ */ new Map();
     this._progressHandlers = /* @__PURE__ */ new Map();
     this._timeoutInfo = /* @__PURE__ */ new Map();
+    this._pendingDebouncedNotifications = /* @__PURE__ */ new Set();
     this.setNotificationHandler(CancelledNotificationSchema, (notification) => {
       const controller = this._requestHandlerAbortControllers.get(notification.params.requestId);
       controller === null || controller === void 0 ? void 0 : controller.abort(notification.params.reason);
@@ -11321,6 +11330,7 @@ var Protocol = class {
     const responseHandlers = this._responseHandlers;
     this._responseHandlers = /* @__PURE__ */ new Map();
     this._progressHandlers.clear();
+    this._pendingDebouncedNotifications.clear();
     this._transport = void 0;
     (_a = this.onclose) === null || _a === void 0 ? void 0 : _a.call(this);
     const error = new McpError(ErrorCode.ConnectionClosed, "Connection closed");
@@ -11341,10 +11351,11 @@ var Protocol = class {
     Promise.resolve().then(() => handler(notification)).catch((error) => this._onerror(new Error(`Uncaught error in notification handler: ${error}`)));
   }
   _onrequest(request, extra) {
-    var _a, _b, _c, _d;
+    var _a, _b;
     const handler = (_a = this._requestHandlers.get(request.method)) !== null && _a !== void 0 ? _a : this.fallbackRequestHandler;
+    const capturedTransport = this._transport;
     if (handler === void 0) {
-      (_b = this._transport) === null || _b === void 0 ? void 0 : _b.send({
+      capturedTransport === null || capturedTransport === void 0 ? void 0 : capturedTransport.send({
         jsonrpc: "2.0",
         id: request.id,
         error: {
@@ -11358,8 +11369,8 @@ var Protocol = class {
     this._requestHandlerAbortControllers.set(request.id, abortController);
     const fullExtra = {
       signal: abortController.signal,
-      sessionId: (_c = this._transport) === null || _c === void 0 ? void 0 : _c.sessionId,
-      _meta: (_d = request.params) === null || _d === void 0 ? void 0 : _d._meta,
+      sessionId: capturedTransport === null || capturedTransport === void 0 ? void 0 : capturedTransport.sessionId,
+      _meta: (_b = request.params) === null || _b === void 0 ? void 0 : _b._meta,
       sendNotification: (notification) => this.notification(notification, { relatedRequestId: request.id }),
       sendRequest: (r, resultSchema, options) => this.request(r, resultSchema, { ...options, relatedRequestId: request.id }),
       authInfo: extra === null || extra === void 0 ? void 0 : extra.authInfo,
@@ -11367,26 +11378,25 @@ var Protocol = class {
       requestInfo: extra === null || extra === void 0 ? void 0 : extra.requestInfo
     };
     Promise.resolve().then(() => handler(request, fullExtra)).then((result) => {
-      var _a2;
       if (abortController.signal.aborted) {
         return;
       }
-      return (_a2 = this._transport) === null || _a2 === void 0 ? void 0 : _a2.send({
+      return capturedTransport === null || capturedTransport === void 0 ? void 0 : capturedTransport.send({
         result,
         jsonrpc: "2.0",
         id: request.id
       });
     }, (error) => {
-      var _a2, _b2;
+      var _a2;
       if (abortController.signal.aborted) {
         return;
       }
-      return (_a2 = this._transport) === null || _a2 === void 0 ? void 0 : _a2.send({
+      return capturedTransport === null || capturedTransport === void 0 ? void 0 : capturedTransport.send({
         jsonrpc: "2.0",
         id: request.id,
         error: {
           code: Number.isSafeInteger(error["code"]) ? error["code"] : ErrorCode.InternalError,
-          message: (_b2 = error.message) !== null && _b2 !== void 0 ? _b2 : "Internal error"
+          message: (_a2 = error.message) !== null && _a2 !== void 0 ? _a2 : "Internal error"
         }
       });
     }).catch((error) => this._onerror(new Error(`Failed to send response: ${error}`))).finally(() => {
@@ -11520,10 +11530,32 @@ var Protocol = class {
    * Emits a notification, which is a one-way message that does not expect a response.
    */
   async notification(notification, options) {
+    var _a, _b;
     if (!this._transport) {
       throw new Error("Not connected");
     }
     this.assertNotificationCapability(notification.method);
+    const debouncedMethods = (_b = (_a = this._options) === null || _a === void 0 ? void 0 : _a.debouncedNotificationMethods) !== null && _b !== void 0 ? _b : [];
+    const canDebounce = debouncedMethods.includes(notification.method) && !notification.params && !(options === null || options === void 0 ? void 0 : options.relatedRequestId);
+    if (canDebounce) {
+      if (this._pendingDebouncedNotifications.has(notification.method)) {
+        return;
+      }
+      this._pendingDebouncedNotifications.add(notification.method);
+      Promise.resolve().then(() => {
+        var _a2;
+        this._pendingDebouncedNotifications.delete(notification.method);
+        if (!this._transport) {
+          return;
+        }
+        const jsonrpcNotification2 = {
+          ...notification,
+          jsonrpc: "2.0"
+        };
+        (_a2 = this._transport) === null || _a2 === void 0 ? void 0 : _a2.send(jsonrpcNotification2, options).catch((error) => this._onerror(error));
+      });
+      return;
+    }
     const jsonrpcNotification = {
       ...notification,
       jsonrpc: "2.0"
@@ -11871,203 +11903,373 @@ var StdioServerTransport = class {
 };
 
 // index.js
+if (!process.env.APP_ENV) {
+  throw new Error('APP_ENV environment variable is required. Set it to "dev" or "prod"');
+}
+if (!process.env.API_TOKEN) {
+  throw new Error("API_TOKEN environment variable is required. Get your token from https://oa-y.com");
+}
+var APP_ENV = process.env.APP_ENV;
 var API_TOKEN = process.env.API_TOKEN;
-var API_BASE_URL = "https://oa-y.com";
-var legacyJwt = null;
+if (APP_ENV !== "dev" && APP_ENV !== "prod") {
+  throw new Error(`Invalid APP_ENV value: "${APP_ENV}". Must be "dev" or "prod"`);
+}
+var API_BASE_URL = APP_ENV === "dev" ? "https://lrn.oa-y.com/api-tokens" : "https://oa-y.com/api-tokens";
+var API_BASE_URL_PROFESSIONS = APP_ENV === "dev" ? "https://libdev.anyemp.com/api" : "https://libs.anyemp.com/api";
 var getHeaders = () => ({
   "Content-Type": "application/json",
   "Authorization": `Bearer ${API_TOKEN}`
 });
-var prodToolHandlers = {
-  async login(args) {
-    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: args.email, password: args.password })
-    });
-    const data = await response.json();
-    if (data.token) {
-      legacyJwt = data.token;
-      return { content: [{ type: "text", text: "Login successful" }] };
-    } else {
-      throw new Error(data.message || "Login failed");
-    }
-  },
-  async create_or_update_course(args) {
-    const response = await fetch(`${API_BASE_URL}/api/course`, {
-      method: "POST",
-      headers: getHeaders(),
-      body: JSON.stringify(args)
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    const data = await response.json();
-    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
-  },
+var toolHandlers = {
   async get_courses(args) {
-    if (!legacyJwt) throw new Error("Not logged in. Please use login first.");
     const params = new URLSearchParams();
     if (args.page) params.append("page", args.page.toString());
     if (args.limit) params.append("limit", args.limit.toString());
     if (args.search) params.append("search", args.search);
-    const response = await fetch(`${API_BASE_URL}/api/courses?${params}`, {
-      headers: { "Authorization": `Bearer ${legacyJwt}` }
+    if (args.difficulty) params.append("difficulty", args.difficulty);
+    if (args.all) params.append("all", "true");
+    const response = await fetch(`${API_BASE_URL}/courses?${params}`, { headers: getHeaders() });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const data = await response.json();
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  },
+  async get_course(args) {
+    const response = await fetch(`${API_BASE_URL}/courses/${args.courseId}`, { headers: getHeaders() });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const data = await response.json();
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  },
+  async create_course(args) {
+    let professions = args.professions || [];
+    professions = professions.map((p) => typeof p === "object" && p._id ? p._id : p);
+    const modules = [];
+    if (Array.isArray(args.modules)) {
+      for (const mod of args.modules) {
+        const lessonIds = [];
+        if (Array.isArray(mod.lessons)) {
+          for (const lesson of mod.lessons) {
+            if (typeof lesson === "string") {
+              lessonIds.push(lesson);
+            } else if (lesson._id) {
+              const lessonResp = await fetch(`${API_BASE_URL}/lessons/${lesson._id}`, {
+                method: "PUT",
+                headers: getHeaders(),
+                body: JSON.stringify(lesson)
+              });
+              if (!lessonResp.ok) throw new Error(`Error updating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
+              lessonIds.push(lesson._id);
+            } else {
+              const lessonResp = await fetch(`${API_BASE_URL}/lessons`, {
+                method: "POST",
+                headers: getHeaders(),
+                body: JSON.stringify(lesson)
+              });
+              if (!lessonResp.ok) throw new Error(`Error creating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
+              const lessonData = await lessonResp.json();
+              if (lessonData.success && lessonData.data && lessonData.data._id) {
+                lessonIds.push(lessonData.data._id);
+              } else {
+                throw new Error("Error creating lesson: _id not received");
+              }
+            }
+          }
+        }
+        modules.push({
+          title: mod.title,
+          description: mod.description || "",
+          content: mod.content || "",
+          order: mod.order || 0,
+          duration: mod.duration || 0,
+          lessons: lessonIds,
+          tests: mod.tests || [],
+          achievements: mod.achievements || []
+        });
+      }
+    }
+    const courseData = {
+      title: args.title,
+      description: args.description,
+      difficulty: args.difficulty,
+      duration: args.duration,
+      professions,
+      image: args.image,
+      isDraft: args.isDraft || false,
+      modules
+    };
+    const response = await fetch(`${API_BASE_URL}/courses`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(courseData)
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     const data = await response.json();
     return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
   },
-  async get_categories() {
-    if (!legacyJwt) throw new Error("Not logged in. Please use login first.");
-    const response = await fetch(`${API_BASE_URL}/api/categories?all=true`, {
-      headers: { "Authorization": `Bearer ${legacyJwt}` }
+  async update_course(args) {
+    let professions = args.professions || [];
+    professions = professions.map((p) => typeof p === "object" && p._id ? p._id : p);
+    const courseData = { _id: args.courseId, ...args, professions };
+    const courseId = args.courseId;
+    delete courseData.courseId;
+    if (Array.isArray(courseData.modules)) {
+      for (const mod of courseData.modules) {
+        if (Array.isArray(mod.lessons)) {
+          for (let i = 0; i < mod.lessons.length; i++) {
+            const lesson = mod.lessons[i];
+            if (typeof lesson === "string") continue;
+            else if (lesson._id) {
+              const lessonResp = await fetch(`${API_BASE_URL}/lessons/${lesson._id}`, {
+                method: "PUT",
+                headers: getHeaders(),
+                body: JSON.stringify(lesson)
+              });
+              if (!lessonResp.ok) throw new Error(`Error updating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
+            } else {
+              const lessonResp = await fetch(`${API_BASE_URL}/lessons`, {
+                method: "POST",
+                headers: getHeaders(),
+                body: JSON.stringify(lesson)
+              });
+              if (!lessonResp.ok) throw new Error(`Error creating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
+              const lessonData = await lessonResp.json();
+              if (lessonData.success && lessonData.data && lessonData.data._id) {
+                mod.lessons[i] = lessonData.data._id;
+              } else {
+                throw new Error("Error creating lesson: _id not received");
+              }
+            }
+          }
+          mod.lessons = mod.lessons.map((lesson) => typeof lesson === "object" && lesson._id ? lesson._id : lesson);
+        }
+      }
+    }
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
+      method: "PUT",
+      headers: getHeaders(),
+      body: JSON.stringify(courseData)
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     const data = await response.json();
     return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
   },
-  async get_profile() {
-    if (!legacyJwt) throw new Error("Not logged in. Please use login first.");
-    const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
-      headers: { "Authorization": `Bearer ${legacyJwt}` }
+  async get_lessons(args) {
+    const params = new URLSearchParams();
+    if (args.page) params.append("page", args.page.toString());
+    if (args.limit) params.append("limit", args.limit.toString());
+    if (args.search) params.append("search", args.search);
+    if (args.type) params.append("type", args.type);
+    if (args.contentType) params.append("contentType", args.contentType);
+    if (args.courseId) params.append("courseId", args.courseId);
+    if (args.moduleId) params.append("moduleId", args.moduleId);
+    if (args.sortBy) params.append("sortBy", args.sortBy);
+    if (args.all) params.append("all", "true");
+    const response = await fetch(`${API_BASE_URL}/lessons?${params}`, { headers: getHeaders() });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const data = await response.json();
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  },
+  async get_lesson(args) {
+    const response = await fetch(`${API_BASE_URL}/lessons/${args.lessonId}`, { headers: getHeaders() });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const data = await response.json();
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  },
+  async create_lesson(args) {
+    const lessonData = { ...args };
+    const response = await fetch(`${API_BASE_URL}/lessons`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(lessonData)
     });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const data = await response.json();
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  },
+  async update_lesson(args) {
+    const lessonId = args.lessonId || args._id;
+    if (!lessonId) throw new Error("lessonId is required");
+    const lessonData = { ...args };
+    delete lessonData.lessonId;
+    const response = await fetch(`${API_BASE_URL}/lessons/${lessonId}`, {
+      method: "PUT",
+      headers: getHeaders(),
+      body: JSON.stringify(lessonData)
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const data = await response.json();
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  },
+  async get_professions() {
+    const response = await fetch(`${API_BASE_URL_PROFESSIONS}/profession`, { headers: getHeaders() });
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     const data = await response.json();
     return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
   }
 };
-var legacyCourseInputSchema = {
-  type: "object",
-  properties: {
-    _id: { type: "string", description: "Course ID (for update)" },
-    title: { type: "string", description: "Course title" },
-    description: { type: "string", description: "Course description" },
-    category: { type: "string", description: "Course category ID" },
-    instructor: { type: "string", description: "Course instructor ID" },
-    difficulty: { type: "string", description: "Course difficulty" },
-    modules: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          title: { type: "string", description: "Module title (REQUIRED)" },
-          content: { type: "string", description: "Module content (REQUIRED)" },
-          description: { type: "string", description: "Module description (OPTIONAL)" },
-          order: { type: "number", description: "Module order (REQUIRED)" },
-          lessons: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                title: { type: "string", description: "Lesson title (REQUIRED for all lessons)" },
-                content: { type: "string", description: "Lesson content (REQUIRED for standard content types, NOT for mixed type)" },
-                duration: { type: "number", description: "Duration in minutes (REQUIRED for all lessons)" },
-                type: { type: "string", description: "Lesson type (text, video, interactive) - REQUIRED for all lessons", default: "text" },
-                contentType: { type: "string", description: "Content type (standard, labyrinth, flippingCards, mixed, memoryGame, tagCloud, rolePlayGame) - REQUIRED for all lessons", default: "standard" },
-                videoUrl: { type: "string", description: "Video URL (for video type lessons)" },
-                contentBlocks: {
-                  type: "array",
-                  description: "REQUIRED for mixed content type, contains different content blocks",
-                  items: {
-                    type: "object",
-                    properties: {
-                      type: { type: "string", description: "Block type (REQUIRED for mixed content)" },
-                      content: { type: "string", description: "Block content (REQUIRED for mixed content)" },
-                      order: { type: "number", description: "Block order (REQUIRED for mixed content)" }
-                    },
-                    required: ["type", "content", "order"]
-                  }
-                },
-                resources: {
-                  type: "array",
-                  description: "Optional resources for the lesson",
-                  items: {
-                    type: "object",
-                    properties: {
-                      title: { type: "string", description: "Resource title" },
-                      type: { type: "string", description: "Resource type" },
-                      description: { type: "string", description: "Resource description" },
-                      url: { type: "string", description: "Resource URL" }
-                    },
-                    required: ["title", "type", "description", "url"]
-                  }
-                },
-                practiceExercises: {
-                  type: "array",
-                  description: "Optional practice exercises for the lesson",
-                  items: {
-                    type: "object",
-                    properties: {
-                      title: { type: "string", description: "Exercise title" },
-                      description: { type: "string", description: "Exercise description" },
-                      codeSnippet: { type: "string", description: "Code snippet" },
-                      playgroundUrl: { type: "string", description: "Playground URL" }
-                    },
-                    required: ["title", "description"]
-                  }
-                }
-              },
-              required: ["title", "duration", "type", "contentType"]
-            }
-          }
-        },
-        required: ["title", "content", "order"]
-      }
-    },
-    image: { type: "string" },
-    duration: { type: "number" }
-  },
-  required: ["title", "description", "category", "instructor", "difficulty"]
-};
-var legacyLoginInputSchema = {
-  type: "object",
-  properties: {
-    email: { type: "string", description: "User email" },
-    password: { type: "string", description: "User password" }
-  },
-  required: ["email", "password"]
-};
-var legacyGetCoursesInputSchema = {
+var getCoursesInputSchema = {
   type: "object",
   properties: {
     page: { type: "number", description: "Page number (default: 1)" },
     limit: { type: "number", description: "Number of courses per page (default: 10)" },
-    search: { type: "string", description: "Search by course name or description" }
+    search: { type: "string", description: "Search by course name or description" },
+    difficulty: { type: "string", enum: ["beginner", "intermediate", "advanced"], description: "Filter by difficulty level" },
+    all: { type: "boolean", description: "Get all courses without pagination" }
   }
 };
-var legacyGetCategoriesInputSchema = {
+var getCourseInputSchema = {
   type: "object",
   properties: {
-    profile: { type: "boolean", description: "If true, returns profile categories" }
+    courseId: { type: "string", description: "Course ID" }
+  },
+  required: ["courseId"]
+};
+var lessonBaseSchema = {
+  title: { type: "string", description: "Lesson title" },
+  content: { type: "string", description: 'Lesson content (required if contentType === "mixed")' },
+  duration: { type: "number", description: "Lesson duration in minutes" },
+  completed: { type: "boolean", description: "Is lesson completed" },
+  type: { type: "string", enum: ["text", "video", "interactive"], description: "Lesson type" },
+  contentType: { type: "string", enum: ["standard", "labyrinth", "flippingCards", "mixed", "memoryGame", "tagCloud", "rolePlayGame", "textReconstruction", "html", "video"], description: "Content type" },
+  contentBlocks: {
+    type: "array",
+    description: 'Content blocks (array of objects, required if contentType === "mixed")',
+    items: {
+      type: "object",
+      properties: {
+        type: { type: "string", enum: ["standard", "labyrinth", "flippingCards", "mixed", "memoryGame", "tagCloud", "rolePlayGame", "textReconstruction", "html", "video"] },
+        content: { type: "string" },
+        order: { type: "number" }
+      },
+      required: ["type", "content"]
+    }
+  },
+  videoUrl: { type: "string", description: "Video URL" },
+  resources: {
+    type: "array",
+    items: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        type: { type: "string" },
+        description: { type: "string" },
+        url: { type: "string" }
+      },
+      required: ["title", "type", "description", "url"]
+    }
+  },
+  practiceExercises: {
+    type: "array",
+    items: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        description: { type: "string" },
+        codeSnippet: { type: "string" },
+        playgroundUrl: { type: "string" }
+      },
+      required: ["title", "description"]
+    }
+  },
+  isDraft: { type: "boolean", description: "Is draft" }
+};
+var courseModuleSchema = {
+  type: "object",
+  properties: {
+    title: { type: "string" },
+    description: { type: "string" },
+    content: { type: "string" },
+    order: { type: "number" },
+    duration: { type: "number", description: "Module duration in minutes" },
+    lessons: { type: "array", items: { type: "string" }, default: [] },
+    tests: { type: "array", items: { type: "string" }, default: [] },
+    achievements: { type: "array", items: { type: "string" }, default: [] }
+  },
+  required: ["title", "content"]
+};
+var courseBaseSchema = {
+  title: { type: "string", description: "Course title" },
+  description: { type: "string", description: "Course description" },
+  image: { type: "string" },
+  modules: {
+    type: "array",
+    description: "Course modules",
+    default: [],
+    items: courseModuleSchema
+  },
+  professions: {
+    type: "array",
+    items: { type: "string" },
+    description: "Array of profession IDs (must be obtained via get_professions tool call)",
+    default: []
+  },
+  difficulty: { type: "string", enum: ["beginner", "intermediate", "advanced"], description: "Difficulty level" },
+  duration: { type: "number", description: "Course duration in minutes (optional)" },
+  isDraft: { type: "boolean" }
+};
+var getLessonsInputSchema = {
+  type: "object",
+  properties: {
+    page: { type: "number", description: "Page number (default: 1)" },
+    limit: { type: "number", description: "Number of lessons per page (default: 10)" },
+    search: { type: "string", description: "Search by lesson title or description" }
   }
 };
-var legacyGetProfilesInputSchema = {
+var getLessonInputSchema = {
+  type: "object",
+  properties: {
+    courseId: { type: "string", description: "Course ID" },
+    moduleId: { type: "string", description: "Module ID" },
+    lessonId: { type: "string", description: "Lesson ID" }
+  },
+  required: ["courseId", "moduleId", "lessonId"]
+};
+var createCourseInputSchema = {
+  type: "object",
+  properties: {
+    ...courseBaseSchema
+  },
+  required: ["title", "description", "difficulty"]
+};
+var updateCourseInputSchema = {
+  type: "object",
+  properties: {
+    courseId: { type: "string", description: "Course ID for update" },
+    ...courseBaseSchema
+  },
+  required: ["courseId", "title", "description", "difficulty"]
+};
+var createLessonInputSchema = {
+  type: "object",
+  properties: {
+    ...lessonBaseSchema
+  },
+  required: ["title", "type", "contentType"]
+};
+var updateLessonInputSchema = {
+  type: "object",
+  properties: {
+    lessonId: { type: "string", description: "Lesson ID for update" },
+    ...lessonBaseSchema
+  },
+  required: ["lessonId", "title", "type", "contentType"]
+};
+var getProfessionsInputSchema = {
   type: "object",
   properties: {}
 };
-var prodTools = [
-  {
-    name: "create_or_update_course",
-    inputSchema: legacyCourseInputSchema
-  },
-  {
-    name: "get_courses",
-    inputSchema: legacyGetCoursesInputSchema
-  },
-  {
-    name: "login",
-    inputSchema: legacyLoginInputSchema
-  },
-  {
-    name: "get_categories",
-    inputSchema: legacyGetCategoriesInputSchema
-  },
-  {
-    name: "get_profile",
-    inputSchema: legacyGetProfilesInputSchema
-  }
+var availableTools = [
+  { name: "get_courses", inputSchema: getCoursesInputSchema },
+  { name: "get_course", inputSchema: getCourseInputSchema },
+  { name: "create_course", inputSchema: createCourseInputSchema },
+  { name: "update_course", inputSchema: updateCourseInputSchema },
+  { name: "get_lessons", inputSchema: getLessonsInputSchema },
+  { name: "get_lesson", inputSchema: getLessonInputSchema },
+  { name: "create_lesson", inputSchema: createLessonInputSchema },
+  { name: "update_lesson", inputSchema: updateLessonInputSchema },
+  { name: "get_professions", inputSchema: getProfessionsInputSchema }
 ];
 var server = new Server({
-  name: "oa-y-learning-mcp",
+  name: "oa-y-mcp-service",
   version: "2.0.0"
 }, {
   capabilities: {
@@ -12076,16 +12278,16 @@ var server = new Server({
 });
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
-    tools: prodTools
+    tools: availableTools
   };
 });
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
-  if (!prodToolHandlers[name]) {
+  if (!toolHandlers[name]) {
     return { content: [{ type: "text", text: `Unknown tool: ${name}` }], isError: true };
   }
   try {
-    return await prodToolHandlers[name](args);
+    return await toolHandlers[name](args);
   } catch (error) {
     return { content: [{ type: "text", text: `Error executing ${name}: ${error.message}` }], isError: true };
   }
@@ -12093,15 +12295,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("OA-Y Learning MCP Server started on stdio");
+  console.error("OA-Y MCP Server started on stdio");
 }
 main().catch((error) => {
   console.error("Server startup error:", error);
   process.exit(1);
 });
-export {
-  API_TOKEN
-};
 /*! Bundled license information:
 
 uri-js/dist/es5/uri.all.js:
