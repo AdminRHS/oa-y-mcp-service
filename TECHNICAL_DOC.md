@@ -43,15 +43,17 @@
 
 - `get_courses` — get a list of courses (with filters and pagination)
 - `get_course` — get a course by id
-- `create_course` — create a course (with lesson creation/update)
-- `update_course` — update a course (with lesson creation/update)
+- `create_course` — create a course (requires lesson IDs from create_lesson)
+- `update_course` — update a course (requires lesson IDs from create_lesson)
 - `get_lessons` — get a list of lessons
 - `get_lesson` — get a lesson by id
-- `create_lesson` — create a lesson
+- `create_lesson` — create a lesson (use this first to get lesson IDs)
 - `update_lesson` — update a lesson
 - `get_professions` — get a list of professions
 
 > **Note:** All tools are available in both production and development modes. Production mode is recommended for all users, development mode is for testing only.
+
+**Workflow:** Create lessons first using `create_lesson`, then use the returned lesson IDs in `create_course` or `update_course`.
 
 ---
 
@@ -93,6 +95,21 @@
 }
 ```
 
+### Create Lesson
+
+```json
+{
+  "name": "create_lesson",
+  "arguments": {
+    "title": "Lesson Title",
+    "type": "text",
+    "contentType": "standard",
+    "content": "Lesson content here",
+    "duration": 30
+  }
+}
+```
+
 ### Create Course
 
 ```json
@@ -102,7 +119,14 @@
     "title": "Course Title",
     "description": "Course description",
     "difficulty": "beginner",
-    "modules": [],
+    "modules": [
+      {
+        "title": "Module 1",
+        "content": "Module content",
+        "order": 1,
+        "lessons": ["lesson_id_from_create_lesson"]
+      }
+    ],
     "professions": [],
     "image": "",
     "duration": 60
@@ -128,7 +152,15 @@
     "courseId": "course_id_here",
     "title": "Updated Course Title",
     "description": "Updated course description",
-    "difficulty": "intermediate"
+    "difficulty": "intermediate",
+    "modules": [
+      {
+        "title": "Updated Module",
+        "content": "Updated module content",
+        "order": 1,
+        "lessons": ["existing_lesson_id", "new_lesson_id_from_create_lesson"]
+      }
+    ]
   }
 }
 ```

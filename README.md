@@ -49,11 +49,11 @@ You can integrate this service as an external MCP server in your platform or AI 
 
 - `get_courses` — get a list of courses (with filters and pagination)
 - `get_course` — get a course by id
-- `create_course` — create a course (with lesson creation/update)
-- `update_course` — update a course (with lesson creation/update)
+- `create_course` — create a course (requires lesson IDs from create_lesson)
+- `update_course` — update a course (requires lesson IDs from create_lesson)
 - `get_lessons` — get a list of lessons
 - `get_lesson` — get a lesson by id
-- `create_lesson` — create a lesson
+- `create_lesson` — create a lesson (use this first to get lesson IDs)
 - `update_lesson` — update a lesson
 - `get_professions` — get a list of professions
 
@@ -70,7 +70,22 @@ You can integrate this service as an external MCP server in your platform or AI 
 }
 ```
 
-**Create Course:**
+**Create Lesson (first):**
+
+```json
+{
+  "name": "create_lesson",
+  "arguments": {
+    "title": "Lesson Title",
+    "type": "text",
+    "contentType": "standard",
+    "content": "Lesson content here",
+    "duration": 30
+  }
+}
+```
+
+**Create Course (with lesson IDs):**
 
 ```json
 {
@@ -79,7 +94,14 @@ You can integrate this service as an external MCP server in your platform or AI 
     "title": "Course Title",
     "description": "Course description",
     "difficulty": "beginner",
-    "modules": [],
+    "modules": [
+      {
+        "title": "Module 1",
+        "content": "Module content",
+        "order": 1,
+        "lessons": ["lesson_id_from_create_lesson"]
+      }
+    ],
     "professions": [],
     "image": "",
     "duration": 60
@@ -96,7 +118,7 @@ You can integrate this service as an external MCP server in your platform or AI 
 }
 ```
 
-**Update Course:**
+**Update Course (with lesson IDs):**
 
 ```json
 {
@@ -105,7 +127,15 @@ You can integrate this service as an external MCP server in your platform or AI 
     "courseId": "course_id_here",
     "title": "Updated Course Title",
     "description": "Updated course description",
-    "difficulty": "intermediate"
+    "difficulty": "intermediate",
+    "modules": [
+      {
+        "title": "Updated Module",
+        "content": "Updated module content",
+        "order": 1,
+        "lessons": ["existing_lesson_id", "new_lesson_id_from_create_lesson"]
+      }
+    ]
   }
 }
 ```

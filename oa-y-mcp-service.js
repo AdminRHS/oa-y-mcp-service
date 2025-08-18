@@ -11947,30 +11947,11 @@ var toolHandlers = {
       for (const mod of args.modules) {
         const lessonIds = [];
         if (Array.isArray(mod.lessons)) {
-          for (const lesson of mod.lessons) {
-            if (typeof lesson === "string") {
-              lessonIds.push(lesson);
-            } else if (lesson._id) {
-              const lessonResp = await fetch(`${API_BASE_URL}/lessons/${lesson._id}`, {
-                method: "PUT",
-                headers: getHeaders(),
-                body: JSON.stringify(lesson)
-              });
-              if (!lessonResp.ok) throw new Error(`Error updating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
-              lessonIds.push(lesson._id);
+          for (const lessonId of mod.lessons) {
+            if (typeof lessonId === "string") {
+              lessonIds.push(lessonId);
             } else {
-              const lessonResp = await fetch(`${API_BASE_URL}/lessons`, {
-                method: "POST",
-                headers: getHeaders(),
-                body: JSON.stringify(lesson)
-              });
-              if (!lessonResp.ok) throw new Error(`Error creating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
-              const lessonData = await lessonResp.json();
-              if (lessonData.success && lessonData.data && lessonData.data._id) {
-                lessonIds.push(lessonData.data._id);
-              } else {
-                throw new Error("Error creating lesson: _id not received");
-              }
+              throw new Error("Lesson IDs must be strings. Create lessons first using create_lesson tool.");
             }
           }
         }
@@ -12015,31 +11996,13 @@ var toolHandlers = {
       for (const mod of courseData.modules) {
         if (Array.isArray(mod.lessons)) {
           for (let i = 0; i < mod.lessons.length; i++) {
-            const lesson = mod.lessons[i];
-            if (typeof lesson === "string") continue;
-            else if (lesson._id) {
-              const lessonResp = await fetch(`${API_BASE_URL}/lessons/${lesson._id}`, {
-                method: "PUT",
-                headers: getHeaders(),
-                body: JSON.stringify(lesson)
-              });
-              if (!lessonResp.ok) throw new Error(`Error updating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
+            const lessonId = mod.lessons[i];
+            if (typeof lessonId === "string") {
+              continue;
             } else {
-              const lessonResp = await fetch(`${API_BASE_URL}/lessons`, {
-                method: "POST",
-                headers: getHeaders(),
-                body: JSON.stringify(lesson)
-              });
-              if (!lessonResp.ok) throw new Error(`Error creating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
-              const lessonData = await lessonResp.json();
-              if (lessonData.success && lessonData.data && lessonData.data._id) {
-                mod.lessons[i] = lessonData.data._id;
-              } else {
-                throw new Error("Error creating lesson: _id not received");
-              }
+              throw new Error("Lesson IDs must be strings. Create lessons first using create_lesson tool.");
             }
           }
-          mod.lessons = mod.lessons.map((lesson) => typeof lesson === "object" && lesson._id ? lesson._id : lesson);
         }
       }
     }
@@ -12125,7 +12088,7 @@ var getCourseInputSchema = {
 };
 var lessonBaseSchema = {
   title: { type: "string", description: "Lesson title" },
-  content: { type: "string", description: 'Lesson content (required if contentType === "mixed")' },
+  content: { type: "string", description: 'Lesson content (required if contentType !== "mixed")' },
   duration: { type: "number", description: "Lesson duration in minutes" },
   completed: { type: "boolean", description: "Is lesson completed" },
   type: { type: "string", enum: ["text", "video", "interactive"], description: "Lesson type" },
@@ -12140,7 +12103,7 @@ var lessonBaseSchema = {
         content: { type: "string" },
         order: { type: "number" }
       },
-      required: ["type", "content"]
+      required: ["type", "content", "order"]
     }
   },
   videoUrl: { type: "string", description: "Video URL" },
@@ -12192,7 +12155,7 @@ var courseBaseSchema = {
   image: { type: "string" },
   modules: {
     type: "array",
-    description: "Course modules",
+    description: "Course modules with lesson IDs (create lessons first, then add their IDs to modules)",
     default: [],
     items: courseModuleSchema
   },
@@ -12228,7 +12191,8 @@ var createCourseInputSchema = {
   properties: {
     ...courseBaseSchema
   },
-  required: ["title", "description", "difficulty"]
+  required: ["title", "description", "difficulty"],
+  description: "Create a new course. Note: Create lessons first using create_lesson, then add lesson IDs to modules."
 };
 var updateCourseInputSchema = {
   type: "object",
@@ -12236,14 +12200,16 @@ var updateCourseInputSchema = {
     courseId: { type: "string", description: "Course ID for update" },
     ...courseBaseSchema
   },
-  required: ["courseId", "title", "description", "difficulty"]
+  required: ["courseId", "title", "description", "difficulty"],
+  description: "Update an existing course. Note: Create new lessons first using create_lesson, then add lesson IDs to modules."
 };
 var createLessonInputSchema = {
   type: "object",
   properties: {
     ...lessonBaseSchema
   },
-  required: ["title", "type", "contentType"]
+  required: ["title", "type", "contentType"],
+  description: "Create a new lesson. Use this before creating/updating courses to get lesson IDs."
 };
 var updateLessonInputSchema = {
   type: "object",
@@ -12251,7 +12217,8 @@ var updateLessonInputSchema = {
     lessonId: { type: "string", description: "Lesson ID for update" },
     ...lessonBaseSchema
   },
-  required: ["lessonId", "title", "type", "contentType"]
+  required: ["lessonId", "title", "type", "contentType"],
+  description: "Update an existing lesson."
 };
 var getProfessionsInputSchema = {
   type: "object",

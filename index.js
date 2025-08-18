@@ -58,31 +58,18 @@ const toolHandlers = {
   async create_course(args) {
     let professions = args.professions || [];
     professions = professions.map(p => typeof p === 'object' && p._id ? p._id : p);
+    
+    // Process modules - expect lesson IDs, not lesson objects
     const modules = [];
     if (Array.isArray(args.modules)) {
       for (const mod of args.modules) {
         const lessonIds = [];
         if (Array.isArray(mod.lessons)) {
-          for (const lesson of mod.lessons) {
-            if (typeof lesson === 'string') {
-              lessonIds.push(lesson);
-            } else if (lesson._id) {
-              const lessonResp = await fetch(`${API_BASE_URL}/lessons/${lesson._id}`, {
-                method: 'PUT', headers: getHeaders(), body: JSON.stringify(lesson)
-              });
-              if (!lessonResp.ok) throw new Error(`Error updating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
-              lessonIds.push(lesson._id);
+          for (const lessonId of mod.lessons) {
+            if (typeof lessonId === 'string') {
+              lessonIds.push(lessonId);
             } else {
-              const lessonResp = await fetch(`${API_BASE_URL}/lessons`, {
-                method: 'POST', headers: getHeaders(), body: JSON.stringify(lesson)
-              });
-              if (!lessonResp.ok) throw new Error(`Error creating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
-              const lessonData = await lessonResp.json();
-              if (lessonData.success && lessonData.data && lessonData.data._id) {
-                lessonIds.push(lessonData.data._id);
-              } else {
-                throw new Error('Error creating lesson: _id not received');
-              }
+              throw new Error('Lesson IDs must be strings. Create lessons first using create_lesson tool.');
             }
           }
         }
@@ -98,6 +85,7 @@ const toolHandlers = {
         });
       }
     }
+    
     const courseData = {
       title: args.title,
       description: args.description,
@@ -121,34 +109,23 @@ const toolHandlers = {
     const courseData = { _id: args.courseId, ...args, professions };
     const courseId = args.courseId;
     delete courseData.courseId;
+    
+    // Process modules - expect lesson IDs, not lesson objects
     if (Array.isArray(courseData.modules)) {
       for (const mod of courseData.modules) {
         if (Array.isArray(mod.lessons)) {
           for (let i = 0; i < mod.lessons.length; i++) {
-            const lesson = mod.lessons[i];
-            if (typeof lesson === 'string') continue;
-            else if (lesson._id) {
-              const lessonResp = await fetch(`${API_BASE_URL}/lessons/${lesson._id}`, {
-                method: 'PUT', headers: getHeaders(), body: JSON.stringify(lesson)
-              });
-              if (!lessonResp.ok) throw new Error(`Error updating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
+            const lessonId = mod.lessons[i];
+            if (typeof lessonId === 'string') {
+              continue; // Valid lesson ID
             } else {
-              const lessonResp = await fetch(`${API_BASE_URL}/lessons`, {
-                method: 'POST', headers: getHeaders(), body: JSON.stringify(lesson)
-              });
-              if (!lessonResp.ok) throw new Error(`Error creating lesson: ${lessonResp.status} ${lessonResp.statusText}`);
-              const lessonData = await lessonResp.json();
-              if (lessonData.success && lessonData.data && lessonData.data._id) {
-                mod.lessons[i] = lessonData.data._id;
-              } else {
-                throw new Error('Error creating lesson: _id not received');
-              }
+              throw new Error('Lesson IDs must be strings. Create lessons first using create_lesson tool.');
             }
           }
-          mod.lessons = mod.lessons.map(lesson => typeof lesson === 'object' && lesson._id ? lesson._id : lesson);
         }
       }
     }
+    
     const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
       method: 'PUT', headers: getHeaders(), body: JSON.stringify(courseData)
     });
@@ -228,7 +205,7 @@ const getCourseInputSchema = {
 // Общие схемы для модулей и уроков
 const lessonBaseSchema = {
   title: { type: 'string', description: 'Lesson title' },
-  content: { type: 'string', description: 'Lesson content (required if contentType === "mixed")' },
+  content: { type: 'string', description: 'Lesson content (required if contentType !== "mixed")' },
   duration: { type: 'number', description: 'Lesson duration in minutes' },
   completed: { type: 'boolean', description: 'Is lesson completed' },
   type: { type: 'string', enum: ['text', 'video', 'interactive'], description: 'Lesson type' },
@@ -243,7 +220,7 @@ const lessonBaseSchema = {
         content: { type: 'string' },
         order: { type: 'number' }
       },
-      required: ['type', 'content']
+      required: ['type', 'content', 'order']
     }
   },
   videoUrl: { type: 'string', description: 'Video URL' },
@@ -295,7 +272,7 @@ const courseBaseSchema = {
   image: { type: 'string' },
   modules: {
     type: 'array',
-    description: 'Course modules',
+    description: 'Course modules with lesson IDs (create lessons first, then add their IDs to modules)',
     default: [],
     items: courseModuleSchema
   },
@@ -331,7 +308,8 @@ const createCourseInputSchema = {
   properties: {
     ...courseBaseSchema
   },
-  required: ['title', 'description', 'difficulty']
+  required: ['title', 'description', 'difficulty'],
+  description: 'Create a new course. Note: Create lessons first using create_lesson, then add lesson IDs to modules.'
 };
 const updateCourseInputSchema = {
   type: 'object',
@@ -339,14 +317,16 @@ const updateCourseInputSchema = {
     courseId: { type: 'string', description: 'Course ID for update' },
     ...courseBaseSchema
   },
-  required: ['courseId', 'title', 'description', 'difficulty']
+  required: ['courseId', 'title', 'description', 'difficulty'],
+  description: 'Update an existing course. Note: Create new lessons first using create_lesson, then add lesson IDs to modules.'
 };
 const createLessonInputSchema = {
   type: 'object',
   properties: {
     ...lessonBaseSchema
   },
-  required: ['title', 'type', 'contentType']
+  required: ['title', 'type', 'contentType'],
+  description: 'Create a new lesson. Use this before creating/updating courses to get lesson IDs.'
 };
 const updateLessonInputSchema = {
   type: 'object',
@@ -354,7 +334,8 @@ const updateLessonInputSchema = {
     lessonId: { type: 'string', description: 'Lesson ID for update' },
     ...lessonBaseSchema
   },
-  required: ['lessonId', 'title', 'type', 'contentType']
+  required: ['lessonId', 'title', 'type', 'contentType'],
+  description: 'Update an existing lesson.'
 };
 const getProfessionsInputSchema = {
   type: 'object',

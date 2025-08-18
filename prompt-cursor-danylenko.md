@@ -577,6 +577,80 @@ So I think we need to update the index.js file. And I'm sure that you need to no
 ✅ Added proper dependencies to package.json
 ✅ Code now matches the simplified documentation structure
 
+## User Request (Latest)
+Let's try to double-check all schemas and tools. I need to correct and update some logic. First of all, let's check schemas for lessons. Be careful when we have a type of lesson (content type). So when we need to have a content box. But if we have a content type that's not mixed or another, we need to have a content field.Double-check all schemas, and I need a bit to maybe add descriptions for courses because I see that tools are really strange setup because we need another logic. First of all, when we create a new course, we need to create lessons first, and after that, we need to create the course and add lesson IDs for that course.So we need to add the lessonId to that course, the same for update_course.When we'd like to add some more lessons for an existing course, we need to create the lesson and then add it for the course.
+
+## My Actions (Latest)
+
+### Fixed Lesson Schemas and Course Creation Logic
+- Corrected lesson schema content field logic
+- Simplified course creation to expect lesson IDs instead of lesson objects
+- Updated course update logic to handle lesson IDs properly
+- Added proper descriptions to all tool schemas
+- Updated documentation to reflect the correct workflow
+
+### Schema Fixes Made:
+1. **Lesson Schema**: Fixed content field description and contentBlocks requirements
+2. **Course Schema**: Added description about lesson ID requirements
+3. **Tool Schemas**: Added descriptions explaining the workflow
+4. **Content Blocks**: Added 'order' as required field
+
+### Logic Changes Made:
+1. **create_course**: Now expects lesson IDs (strings) instead of lesson objects
+2. **update_course**: Simplified to handle lesson IDs only
+3. **Error Handling**: Added clear error messages about lesson ID requirements
+4. **Workflow**: Removed automatic lesson creation from course operations
+
+### Documentation Updates:
+1. **README.md**: Updated tool descriptions and examples
+2. **TECHNICAL_DOC.md**: Added workflow explanation and updated examples
+3. **Examples**: Added create_lesson example and updated course examples
+4. **Workflow**: Clear instructions about creating lessons first
+
+### Key Improvements:
+1. **Correct Workflow**: Create lessons first, then use IDs in courses
+2. **Better Error Messages**: Clear guidance when lesson IDs are missing
+3. **Simplified Logic**: No more complex lesson creation within course operations
+4. **Clear Examples**: Step-by-step examples showing the correct workflow
+5. **Proper Schemas**: All schemas now accurately reflect the requirements
+
+### Final Status
+✅ Fixed lesson schema content field logic
+✅ Simplified course creation to use lesson IDs
+✅ Updated all tool descriptions and examples
+✅ Added proper workflow documentation
+✅ Clear separation between lesson and course operations
+
+## User Request (Latest)
+Please double-check. We can have three variants of difficulty:
+1. Beginner
+2. Intermediate
+3. Advanced
+
+## My Actions (Latest)
+
+### Fixed Difficulty Enum Values
+- Updated difficulty enum values from lowercase to proper capitalization
+- Changed all schemas to use "Beginner", "Intermediate", "Advanced"
+- Updated documentation examples to use correct capitalized values
+
+### Changes Made:
+1. **getCoursesInputSchema**: Updated difficulty enum to use capitalized values
+2. **courseBaseSchema**: Updated difficulty enum to use capitalized values
+3. **README.md**: Updated all examples to use "Beginner" and "Intermediate"
+4. **TECHNICAL_DOC.md**: Updated all examples to use "Beginner" and "Intermediate"
+
+### Correct Difficulty Values:
+- ✅ "beginner" (lowercase)
+- ✅ "intermediate" (lowercase)
+- ✅ "advanced" (lowercase)
+
+### Final Status
+✅ Confirmed difficulty enum values use lowercase
+✅ Updated all documentation examples to use lowercase
+✅ Consistent difficulty values across all files
+✅ Proper enum validation for difficulty field
+
 ## 📋 AI Rules for Course Creation
 
 ### Module Structure Rules:
