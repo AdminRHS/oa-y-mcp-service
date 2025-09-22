@@ -57,7 +57,7 @@ You can integrate this service as an external MCP server in your platform or AI 
 
 ## MCP Tools
 
-- `get_courses` — get a list of courses (with filters and pagination)
+- `get_courses` — get a list of courses (with filters and pagination, supports profession filtering)
 - `get_course` — get a course by id
 - `create_course` — create a course (requires lesson IDs from create_lesson)
 - `update_course` — update a course (requires lesson IDs from create_lesson)
@@ -77,6 +77,18 @@ You can integrate this service as an external MCP server in your platform or AI 
 {
   "name": "get_courses",
   "arguments": { "page": 1, "limit": 10 }
+}
+```
+
+**Get Courses by Professions:**
+
+```json
+{
+  "name": "get_courses",
+  "arguments": { 
+    "professions": [68, 69],
+    "difficulty": "beginner"
+  }
 }
 ```
 
@@ -149,6 +161,35 @@ You can integrate this service as an external MCP server in your platform or AI 
   }
 }
 ```
+
+---
+
+## Course Filtering by Professions
+
+The `get_courses` tool supports filtering courses by profession IDs. Here's how to use it:
+
+### Workflow:
+1. **Get Professions:** Call `get_professions` to get all available professions with their IDs
+2. **Filter Courses:** Use profession IDs in `get_courses` with the `professions` parameter
+
+### Example:
+```json
+{
+  "name": "get_courses",
+  "arguments": { 
+    "professions": [68, 69],
+    "difficulty": "beginner"
+  }
+}
+```
+
+### Parameters:
+- `professions` - Array of profession IDs (numbers)
+- `difficulty` - Filter by difficulty: "beginner", "intermediate", "advanced"
+- `search` - Search by course name or description
+- `page` - Page number for pagination
+- `limit` - Number of courses per page
+- `all` - Get all courses without pagination
 
 ---
 

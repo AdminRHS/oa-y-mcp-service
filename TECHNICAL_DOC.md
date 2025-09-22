@@ -46,7 +46,7 @@
 
 ## MCP Tools
 
-- `get_courses` — get a list of courses (with filters and pagination)
+- `get_courses` — get a list of courses (with filters and pagination, supports profession filtering)
 - `get_course` — get a course by id
 - `create_course` — create a course (requires lesson IDs from create_lesson)
 - `update_course` — update a course (requires lesson IDs from create_lesson)
@@ -59,6 +59,32 @@
 > **Note:** All tools are available in both production and development modes. Production mode is recommended for all users, development mode is for testing only.
 
 **Workflow:** Create lessons first using `create_lesson`, then use the returned lesson IDs in `create_course` or `update_course`.
+
+---
+
+## Course Filtering by Professions
+
+The `get_courses` tool supports filtering courses by profession IDs. This feature allows users to retrieve courses specific to certain professions.
+
+### Implementation Details:
+- **Input Schema:** `professions` parameter accepts an array of numbers (profession IDs)
+- **API Format:** Profession IDs are sent as comma-separated values: `professions=68,69`
+- **Data Processing:** The system handles various input types (objects with `_id`, numbers, strings) and converts them to the required format
+
+### Technical Flow:
+1. User calls `get_professions` to get available profession IDs
+2. User calls `get_courses` with `professions` parameter containing profession IDs
+3. System converts profession IDs to comma-separated string format
+4. API request is made with `professions=id1,id2` parameter
+5. Backend returns filtered courses
+
+### Supported Parameters:
+- `professions` - Array of profession IDs (numbers)
+- `difficulty` - Filter by difficulty level
+- `search` - Search by course name or description
+- `page` - Page number for pagination
+- `limit` - Number of courses per page
+- `all` - Get all courses without pagination
 
 ---
 
@@ -143,6 +169,18 @@ export API_TOKEN_LIBS=your_libs_api_token
 {
   "name": "get_courses",
   "arguments": { "page": 1, "limit": 10 }
+}
+```
+
+### Get Courses by Professions
+
+```json
+{
+  "name": "get_courses",
+  "arguments": { 
+    "professions": [68, 69],
+    "difficulty": "beginner"
+  }
 }
 ```
 

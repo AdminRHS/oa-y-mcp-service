@@ -11936,6 +11936,21 @@ var toolHandlers = {
     if (args.search) params.append("search", args.search);
     if (args.difficulty) params.append("difficulty", args.difficulty);
     if (args.all) params.append("all", "true");
+    if (args.professions && Array.isArray(args.professions)) {
+      const professionIds = args.professions.map((p) => {
+        if (typeof p === "object" && p._id) {
+          return p._id;
+        } else if (typeof p === "number") {
+          return p.toString();
+        } else if (typeof p === "string") {
+          return p;
+        }
+        return p;
+      });
+      if (professionIds.length > 0) {
+        params.append("professions", professionIds.join(","));
+      }
+    }
     const response = await fetch(`${API_BASE_URL}/courses?${params}`, { headers: getHeaders() });
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     const data = await response.json();
@@ -12084,6 +12099,11 @@ var getCoursesInputSchema = {
     limit: { type: "number", description: "Number of courses per page (default: 10)" },
     search: { type: "string", description: "Search by course name or description" },
     difficulty: { type: "string", enum: ["beginner", "intermediate", "advanced"], description: "Filter by difficulty level" },
+    professions: {
+      type: "array",
+      items: { type: "number" },
+      description: "Array of profession IDs to filter courses (must be obtained via get_professions tool call)"
+    },
     all: { type: "boolean", description: "Get all courses without pagination" }
   }
 };
