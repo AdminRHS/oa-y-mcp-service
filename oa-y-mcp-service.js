@@ -11968,25 +11968,15 @@ var toolHandlers = {
     const modules = [];
     if (Array.isArray(args.modules)) {
       for (const mod of args.modules) {
-        const lessonIds = [];
-        if (Array.isArray(mod.lessons)) {
-          for (const lessonId of mod.lessons) {
-            if (typeof lessonId === "string") {
-              lessonIds.push(lessonId);
-            } else {
-              throw new Error("Lesson IDs must be strings. Create lessons first using create_lesson tool.");
-            }
-          }
+        if (!mod.module || typeof mod.module !== "string") {
+          throw new Error("Module ID is required and must be a string. Create modules first using create_module tool.");
+        }
+        if (typeof mod.order !== "number") {
+          throw new Error("Module order is required and must be a number.");
         }
         modules.push({
-          title: mod.title,
-          description: mod.description || "",
-          content: mod.content || "",
-          order: mod.order || 0,
-          duration: mod.duration || 0,
-          lessons: lessonIds,
-          tests: mod.tests || [],
-          achievements: mod.achievements || []
+          module: mod.module,
+          order: mod.order
         });
       }
     }
@@ -12012,20 +12002,25 @@ var toolHandlers = {
   async update_course(args) {
     let professions = args.professions || [];
     professions = professions.map((p) => typeof p === "object" && p._id ? p._id : p);
-    const courseData = { _id: args.courseId, ...args, professions };
     const courseId = args.courseId;
+    const currentCourseResponse = await fetch(`${API_BASE_URL}/courses/${courseId}`, { headers: getHeaders() });
+    if (!currentCourseResponse.ok) throw new Error(`Failed to get current course: HTTP ${currentCourseResponse.status}`);
+    const currentCourse = await currentCourseResponse.json();
+    const courseData = { _id: courseId, ...args, professions };
     delete courseData.courseId;
+    if (!courseData.modules && currentCourse.data?.modules) {
+      courseData.modules = currentCourse.data.modules.map((module) => ({
+        module: module.id,
+        order: module.order || 1
+      }));
+    }
     if (Array.isArray(courseData.modules)) {
       for (const mod of courseData.modules) {
-        if (Array.isArray(mod.lessons)) {
-          for (let i = 0; i < mod.lessons.length; i++) {
-            const lessonId = mod.lessons[i];
-            if (typeof lessonId === "string") {
-              continue;
-            } else {
-              throw new Error("Lesson IDs must be strings. Create lessons first using create_lesson tool.");
-            }
-          }
+        if (!mod.module || typeof mod.module !== "string") {
+          throw new Error("Module ID is required and must be a string. Create modules first using create_module tool.");
+        }
+        if (typeof mod.order !== "number") {
+          throw new Error("Module order is required and must be a number.");
         }
       }
     }
@@ -12074,8 +12069,14 @@ var toolHandlers = {
   async update_lesson(args) {
     const lessonId = args.lessonId || args._id;
     if (!lessonId) throw new Error("lessonId is required");
+    const currentLessonResponse = await fetch(`${API_BASE_URL}/lessons/${lessonId}`, { headers: getHeaders() });
+    if (!currentLessonResponse.ok) throw new Error(`Failed to get current lesson: HTTP ${currentLessonResponse.status}`);
+    const currentLesson = await currentLessonResponse.json();
     const lessonData = { ...args };
     delete lessonData.lessonId;
+    if (!lessonData.module && currentLesson.data?.module) {
+      lessonData.module = currentLesson.data.module;
+    }
     const response = await fetch(`${API_BASE_URL}/lessons/${lessonId}`, {
       method: "PUT",
       headers: getHeaders(),
@@ -12087,6 +12088,105 @@ var toolHandlers = {
   },
   async get_professions(args) {
     const response = await fetch(`${API_BASE_URL_PROFESSIONS}/professions?all=true`, { headers: getLibsHeaders() });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const data = await response.json();
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  },
+  // Module handlers
+  async get_modules(args) {
+    const params = new URLSearchParams();
+    if (args.page) params.append("page", args.page);
+    if (args.limit) params.append("limit", args.limit);
+    if (args.search) params.append("search", args.search);
+    const response = await fetch(`${API_BASE_URL}/modules?${params}`, { headers: getHeaders() });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const data = await response.json();
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  },
+  async get_module(args) {
+    const response = await fetch(`${API_BASE_URL}/modules/${args.moduleId}`, { headers: getHeaders() });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const data = await response.json();
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  },
+  async create_module(args) {
+    const moduleData = { ...args };
+    const response = await fetch(`${API_BASE_URL}/modules`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(moduleData)
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const data = await response.json();
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  },
+  async update_module(args) {
+    const moduleId = args.moduleId || args._id;
+    if (!moduleId) throw new Error("moduleId is required");
+    const currentModuleResponse = await fetch(`${API_BASE_URL}/modules/${moduleId}`, { headers: getHeaders() });
+    if (!currentModuleResponse.ok) throw new Error(`Failed to get current module: HTTP ${currentModuleResponse.status}`);
+    const currentModule = await currentModuleResponse.json();
+    const moduleData = { ...args };
+    delete moduleData.moduleId;
+    if (!moduleData.lessons && currentModule.data?.lessons) {
+      moduleData.lessons = currentModule.data.lessons.map((lesson) => lesson.id);
+    }
+    if (!moduleData.tests && currentModule.data?.tests) {
+      moduleData.tests = currentModule.data.tests.map((test) => test.id);
+    }
+    const response = await fetch(`${API_BASE_URL}/modules/${moduleId}`, {
+      method: "PUT",
+      headers: getHeaders(),
+      body: JSON.stringify(moduleData)
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const data = await response.json();
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  },
+  // Test handlers
+  async get_tests(args) {
+    const params = new URLSearchParams();
+    if (args.page) params.append("page", args.page);
+    if (args.limit) params.append("limit", args.limit);
+    if (args.search) params.append("search", args.search);
+    const response = await fetch(`${API_BASE_URL}/tests?${params}`, { headers: getHeaders() });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const data = await response.json();
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  },
+  async get_test(args) {
+    const response = await fetch(`${API_BASE_URL}/tests/${args.testId}`, { headers: getHeaders() });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const data = await response.json();
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  },
+  async create_test(args) {
+    const testData = { ...args };
+    const response = await fetch(`${API_BASE_URL}/tests`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(testData)
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const data = await response.json();
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  },
+  async update_test(args) {
+    const testId = args.testId || args._id;
+    if (!testId) throw new Error("testId is required");
+    const currentTestResponse = await fetch(`${API_BASE_URL}/tests/${testId}`, { headers: getHeaders() });
+    if (!currentTestResponse.ok) throw new Error(`Failed to get current test: HTTP ${currentTestResponse.status}`);
+    const currentTest = await currentTestResponse.json();
+    const testData = { ...args };
+    delete testData.testId;
+    if (!testData.module && currentTest.data?.module) {
+      testData.module = currentTest.data.module;
+    }
+    const response = await fetch(`${API_BASE_URL}/tests/${testId}`, {
+      method: "PUT",
+      headers: getHeaders(),
+      body: JSON.stringify(testData)
+    });
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     const data = await response.json();
     return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
@@ -12115,28 +12215,35 @@ var getCourseInputSchema = {
   required: ["courseId"]
 };
 var lessonBaseSchema = {
-  title: { type: "string", description: "Lesson title" },
-  content: { type: "string", description: 'Lesson content (required if contentType !== "mixed")' },
-  duration: { type: "number", description: "Lesson duration in minutes" },
-  completed: { type: "boolean", description: "Is lesson completed" },
-  type: { type: "string", enum: ["text", "video", "interactive"], description: "Lesson type" },
-  contentType: { type: "string", enum: ["standard", "labyrinth", "flippingCards", "mixed", "memoryGame", "tagCloud", "rolePlayGame", "textReconstruction", "html", "video"], description: "Content type" },
+  title: { type: "string", description: "Lesson title (required, automatically generates slug)" },
+  content: { type: "string", description: 'Main lesson content (HTML/Markdown, required if contentType !== "mixed")' },
+  duration: { type: "number", description: "Lesson duration in minutes (optional, default: 0)" },
+  type: { type: "string", enum: ["text", "video", "interactive"], description: "Lesson type (optional)" },
+  contentType: {
+    type: "string",
+    enum: ["standard", "labyrinth", "flippingCards", "mixed", "memoryGame", "tagCloud", "rolePlayGame", "textReconstruction", "presentation", "fullHtml", "htmlBlock", "video"],
+    description: "Content type (optional)"
+  },
   contentBlocks: {
     type: "array",
-    description: 'Content blocks (array of objects, required if contentType === "mixed")',
+    description: 'Content blocks (required if contentType === "mixed")',
     items: {
       type: "object",
       properties: {
-        type: { type: "string", enum: ["standard", "labyrinth", "flippingCards", "mixed", "memoryGame", "tagCloud", "rolePlayGame", "textReconstruction", "html", "video"] },
-        content: { type: "string" },
-        order: { type: "number" }
+        type: {
+          type: "string",
+          enum: ["standard", "labyrinth", "flippingCards", "mixed", "memoryGame", "tagCloud", "rolePlayGame", "textReconstruction", "presentation", "fullHtml", "htmlBlock", "video"]
+        },
+        content: { type: "string", description: "JSON string for complex content types" },
+        order: { type: "number", description: "Order of the block" }
       },
       required: ["type", "content", "order"]
     }
   },
-  videoUrl: { type: "string", description: "Video URL" },
+  videoUrl: { type: "string", description: "Video URL (for video type lessons)" },
   resources: {
     type: "array",
+    description: "Additional resources",
     items: {
       type: "object",
       properties: {
@@ -12150,6 +12257,7 @@ var lessonBaseSchema = {
   },
   practiceExercises: {
     type: "array",
+    description: "Practice exercises",
     items: {
       type: "object",
       properties: {
@@ -12161,26 +12269,26 @@ var lessonBaseSchema = {
       required: ["title", "description"]
     }
   },
-  isDraft: { type: "boolean", description: "Is draft" }
+  isDraft: { type: "boolean", description: "Is draft (optional, default: true)" }
 };
 var courseModuleSchema = {
   type: "object",
   properties: {
-    title: { type: "string" },
-    description: { type: "string" },
-    content: { type: "string" },
-    order: { type: "number" },
-    duration: { type: "number", description: "Module duration in minutes" },
-    lessons: { type: "array", items: { type: "string" }, default: [] },
-    tests: { type: "array", items: { type: "string" }, default: [] },
-    achievements: { type: "array", items: { type: "string" }, default: [] }
+    module: { type: "string", description: "Module ID (required)" },
+    order: { type: "number", description: "Order of module in course (required)" }
   },
-  required: ["title", "content"]
+  required: ["module", "order"]
 };
 var courseBaseSchema = {
-  title: { type: "string", description: "Course title" },
-  description: { type: "string", description: "Course description" },
-  image: { type: "string" },
+  title: { type: "string", description: "Course title (required, automatically generates slug)" },
+  description: { type: "string", description: "Course description (required)" },
+  image: { type: "string", description: "Path to course image (optional, default standard image)" },
+  videos: {
+    type: "array",
+    items: { type: "string" },
+    description: "Array of video URLs (optional)",
+    default: []
+  },
   modules: {
     type: "array",
     description: "Course modules with lesson IDs (create lessons first, then add their IDs to modules)",
@@ -12190,12 +12298,15 @@ var courseBaseSchema = {
   professions: {
     type: "array",
     items: { type: "string" },
-    description: "Array of profession IDs (must be obtained via get_professions tool call)",
+    description: "Array of profession IDs from microservice (optional, can be empty array)",
     default: []
   },
-  difficulty: { type: "string", enum: ["beginner", "intermediate", "advanced"], description: "Difficulty level" },
-  duration: { type: "number", description: "Course duration in minutes (optional)" },
-  isDraft: { type: "boolean" }
+  difficulty: {
+    type: "string",
+    enum: ["beginner", "intermediate", "advanced"],
+    description: "Difficulty level (required)"
+  },
+  isDraft: { type: "boolean", description: "Is draft (optional, default: true)" }
 };
 var getLessonsInputSchema = {
   type: "object",
@@ -12220,7 +12331,7 @@ var createCourseInputSchema = {
     ...courseBaseSchema
   },
   required: ["title", "description", "difficulty"],
-  description: "Create a new course. Note: Create lessons first using create_lesson, then add lesson IDs to modules."
+  description: "Create a new course. IMPORTANT: Follow the correct creation order: 1) Create lessons using create_lesson, 2) Create tests using create_test (optional), 3) Create modules using create_module with lesson/test IDs, 4) Create course with module IDs in modules array. The system automatically generates slug, calculates duration, and sets default values."
 };
 var updateCourseInputSchema = {
   type: "object",
@@ -12229,7 +12340,7 @@ var updateCourseInputSchema = {
     ...courseBaseSchema
   },
   required: ["courseId", "title", "description", "difficulty"],
-  description: "Update an existing course. Note: Create new lessons first using create_lesson, then add lesson IDs to modules."
+  description: "Update an existing course. IMPORTANT: For new content, follow the correct order: 1) Create lessons using create_lesson, 2) Create tests using create_test (optional), 3) Create modules using create_module with lesson/test IDs, 4) Update course with new module IDs in modules array."
 };
 var createLessonInputSchema = {
   type: "object",
@@ -12237,7 +12348,7 @@ var createLessonInputSchema = {
     ...lessonBaseSchema
   },
   required: ["title", "type", "contentType"],
-  description: "Create a new lesson. Use this before creating/updating courses to get lesson IDs."
+  description: "Create a new lesson. IMPORTANT: Use this FIRST before creating courses. The system automatically generates slug and sets default values. For mixed content type, use contentBlocks array instead of content field."
 };
 var updateLessonInputSchema = {
   type: "object",
@@ -12246,12 +12357,129 @@ var updateLessonInputSchema = {
     ...lessonBaseSchema
   },
   required: ["lessonId", "title", "type", "contentType"],
-  description: "Update an existing lesson."
+  description: "Update an existing lesson. For mixed content type, use contentBlocks array instead of content field."
 };
 var getProfessionsInputSchema = {
   type: "object",
   properties: {},
   description: "Get all professions without pagination"
+};
+var moduleBaseSchema = {
+  title: { type: "string", description: "Module title (required, automatically generates slug)" },
+  content: { type: "string", description: "Module description (required, plain text)" },
+  description: { type: "string", description: "Module description (optional)" },
+  lessons: {
+    type: "array",
+    items: { type: "string" },
+    description: "Array of lesson IDs (can be empty array)",
+    default: []
+  },
+  tests: {
+    type: "array",
+    items: { type: "string" },
+    description: "Array of test IDs (can be empty array)",
+    default: []
+  },
+  isDraft: { type: "boolean", description: "Is draft (optional, default: true)" }
+};
+var createModuleInputSchema = {
+  type: "object",
+  properties: {
+    ...moduleBaseSchema
+  },
+  required: ["title", "content"],
+  description: "Create a new module. IMPORTANT: Create lessons first, then add their IDs to the lessons array. The system automatically generates slug and sets default values."
+};
+var updateModuleInputSchema = {
+  type: "object",
+  properties: {
+    moduleId: { type: "string", description: "Module ID for update" },
+    ...moduleBaseSchema
+  },
+  required: ["moduleId", "title", "content"],
+  description: "Update an existing module. For new lessons, create them first and add their IDs to the lessons array."
+};
+var getModulesInputSchema = {
+  type: "object",
+  properties: {
+    page: { type: "number", description: "Page number (default: 1)" },
+    limit: { type: "number", description: "Number of modules per page (default: 10)" },
+    search: { type: "string", description: "Search by module title or description" }
+  },
+  description: "Get a list of modules with pagination and search"
+};
+var getModuleInputSchema = {
+  type: "object",
+  properties: {
+    moduleId: { type: "string", description: "Module ID" }
+  },
+  required: ["moduleId"],
+  description: "Get a specific module by ID"
+};
+var testBaseSchema = {
+  title: { type: "string", description: "Test title (required, automatically generates slug)" },
+  description: { type: "string", description: "Test description (optional)" },
+  module: { type: "string", description: "Module ID (required)" },
+  questions: {
+    type: "array",
+    items: {
+      type: "object",
+      properties: {
+        question: { type: "string", description: "Question text" },
+        type: { type: "string", enum: ["single-choice", "multiple-choice", "true-false", "text", "memory"], description: "Question type" },
+        options: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              text: { type: "string" },
+              isCorrect: { type: "boolean" }
+            }
+          },
+          description: "Answer options (for choice questions)"
+        },
+        points: { type: "number", description: "Points for this question" }
+      },
+      required: ["question", "type", "options", "points"]
+    },
+    description: "Array of test questions"
+  },
+  passingScore: { type: "number", description: "Minimum score to pass (0-100)" },
+  timeLimit: { type: "number", description: "Time limit in minutes (optional)" }
+};
+var createTestInputSchema = {
+  type: "object",
+  properties: {
+    ...testBaseSchema
+  },
+  required: ["title", "module", "questions"],
+  description: "Create a new test. IMPORTANT: Create modules first using create_module tool. The system automatically generates slug and sets default values."
+};
+var updateTestInputSchema = {
+  type: "object",
+  properties: {
+    testId: { type: "string", description: "Test ID for update" },
+    ...testBaseSchema
+  },
+  required: ["testId", "title", "module", "questions"],
+  description: "Update an existing test. IMPORTANT: For new tests, create modules first using create_module tool."
+};
+var getTestsInputSchema = {
+  type: "object",
+  properties: {
+    page: { type: "number", description: "Page number (default: 1)" },
+    limit: { type: "number", description: "Number of tests per page (default: 10)" },
+    search: { type: "string", description: "Search by test title or description" }
+  },
+  description: "Get a list of tests with pagination and search"
+};
+var getTestInputSchema = {
+  type: "object",
+  properties: {
+    testId: { type: "string", description: "Test ID" }
+  },
+  required: ["testId"],
+  description: "Get a specific test by ID"
 };
 var availableTools = [
   { name: "get_courses", inputSchema: getCoursesInputSchema },
@@ -12262,7 +12490,15 @@ var availableTools = [
   { name: "get_lesson", inputSchema: getLessonInputSchema },
   { name: "create_lesson", inputSchema: createLessonInputSchema },
   { name: "update_lesson", inputSchema: updateLessonInputSchema },
-  { name: "get_professions", inputSchema: getProfessionsInputSchema }
+  { name: "get_professions", inputSchema: getProfessionsInputSchema },
+  { name: "get_modules", inputSchema: getModulesInputSchema },
+  { name: "get_module", inputSchema: getModuleInputSchema },
+  { name: "create_module", inputSchema: createModuleInputSchema },
+  { name: "update_module", inputSchema: updateModuleInputSchema },
+  { name: "get_tests", inputSchema: getTestsInputSchema },
+  { name: "get_test", inputSchema: getTestInputSchema },
+  { name: "create_test", inputSchema: createTestInputSchema },
+  { name: "update_test", inputSchema: updateTestInputSchema }
 ];
 var server = new Server({
   name: "oa-y-mcp-service",
