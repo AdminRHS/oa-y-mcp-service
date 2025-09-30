@@ -6,13 +6,15 @@
   "bin": {
     "oa-y-mcp-service": "./oa-y-mcp-service.js"
   },
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
-    "build": "npx esbuild index.js --bundle --platform=node --outfile=oa-y-mcp-service.js --format=esm",
+    "build": "npx esbuild index.js --bundle --platform=node --outfile=oa-y-mcp-service.js --format=cjs",
     "dev": "node index.js"
   },
   "files": [
-    "oa-y-mcp-service.js"
+    "oa-y-mcp-service.js",
+    "oa-y-mcp-service.cmd",
+    "oa-y-mcp-service.ps1"
   ],
   "keywords": [
     "mcp",
