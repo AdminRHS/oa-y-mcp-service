@@ -608,29 +608,109 @@ const testBaseSchema = {
   questions: {
     type: 'array',
     items: {
-      type: 'object',
-      properties: {
-        question: { type: 'string', description: 'Question text' },
-        type: { type: 'string', enum: ['single-choice', 'multiple-choice', 'true-false', 'text', 'memory'], description: 'Question type' },
-        options: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              text: { type: 'string' },
-              isCorrect: { type: 'boolean' }
-            }
+      oneOf: [
+        // Single Choice
+        {
+          type: 'object',
+          properties: {
+            question: { type: 'string', description: 'Question text' },
+            type: { type: 'string', enum: ['single-choice'] },
+            options: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  text: { type: 'string' },
+                  isCorrect: { type: 'boolean' }
+                },
+                required: ['text', 'isCorrect']
+              }
+            },
+            points: { type: 'number', description: 'Points for this question', default: 1 }
           },
-          description: 'Answer options (for choice questions)'
+          required: ['question', 'type', 'options', 'points']
         },
-        points: { type: 'number', description: 'Points for this question' }
-      },
-      required: ['question', 'type', 'options', 'points']
+        // Multiple Choice
+        {
+          type: 'object',
+          properties: {
+            question: { type: 'string', description: 'Question text' },
+            type: { type: 'string', enum: ['multiple-choice'] },
+            options: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  text: { type: 'string' },
+                  isCorrect: { type: 'boolean' }
+                },
+                required: ['text', 'isCorrect']
+              }
+            },
+            points: { type: 'number', description: 'Points for this question', default: 1 }
+          },
+          required: ['question', 'type', 'options', 'points']
+        },
+        // True-False
+        {
+          type: 'object',
+          properties: {
+            question: { type: 'string', description: 'Question text' },
+            type: { type: 'string', enum: ['true-false'] },
+            options: { type: 'array', items: {}, description: 'Empty array for true-false' },
+            correctAnswer: { type: 'string', enum: ['true', 'false'], description: 'Correct answer' },
+            points: { type: 'number', description: 'Points for this question', default: 1 }
+          },
+          required: ['question', 'type', 'options', 'correctAnswer', 'points']
+        },
+        // Text
+        {
+          type: 'object',
+          properties: {
+            question: { type: 'string', description: 'Question text' },
+            type: { type: 'string', enum: ['text'] },
+            options: { type: 'array', items: {}, description: 'Empty array for text' },
+            correctAnswer: { type: 'string', description: 'Correct answer text' },
+            points: { type: 'number', description: 'Points for this question', default: 1 }
+          },
+          required: ['question', 'type', 'options', 'correctAnswer', 'points']
+        },
+        // Memory
+        {
+          type: 'object',
+          properties: {
+            question: { type: 'string', description: 'Question text' },
+            type: { type: 'string', enum: ['memory'] },
+            options: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  text: { type: 'string' },
+                  pairId: { type: 'string', description: 'Pair ID for matching' }
+                },
+                required: ['text', 'pairId']
+              }
+            },
+            points: { type: 'number', description: 'Points for this question', default: 1 }
+          },
+          required: ['question', 'type', 'options', 'points']
+        }
+      ]
     },
     description: 'Array of test questions'
   },
-  passingScore: { type: 'number', description: 'Minimum score to pass (0-100)' },
-  timeLimit: { type: 'number', description: 'Time limit in minutes (optional)' }
+  passingScore: { 
+    type: 'number', 
+    description: 'Minimum score to pass (0-100)', 
+    minimum: 0, 
+    maximum: 100 
+  },
+  timeLimit: { 
+    type: 'number', 
+    description: 'Time limit in minutes (optional)', 
+    default: 30 
+  }
 };
 
 const createTestInputSchema = {
