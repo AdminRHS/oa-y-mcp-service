@@ -12,9 +12,7 @@
     "dev": "node index.js"
   },
   "files": [
-    "oa-y-mcp-service.js",
-    "oa-y-mcp-service.cmd",
-    "oa-y-mcp-service.ps1"
+    "oa-y-mcp-service.js"
   ],
   "keywords": [
     "mcp",
