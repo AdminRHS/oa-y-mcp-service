@@ -5,30 +5,32 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 
 /**
  * MCP Service for OA-Y Learning Platform
- * 
+ *
  * IMPORTANT: Follow the correct creation order for courses, modules, lessons, and tests:
- * 
+ *
  * 1. CREATE LESSONS FIRST:
  *    - Use create_lesson to create individual lessons
  *    - Get lesson IDs from the response
  *    - For mixed content type, use contentBlocks array instead of content field
- * 
+ *    - Optional: Add profession IDs to lessons (use get_professions to get available professions)
+ *
  * 2. CREATE TESTS (OPTIONAL):
  *    - Use create_test to create tests
  *    - Get test IDs from the response
- * 
+ *
  * 3. CREATE MODULES:
  *    - Use create_module with lesson IDs and test IDs
  *    - Get module IDs from the response
- * 
+ *
  * 4. CREATE COURSE WITH MODULES:
  *    - Use create_course with module IDs in modules array
+ *    - Optional: Add profession IDs to courses (use get_professions to get available professions)
  *    - The system automatically generates slug, calculates duration, and sets default values
- * 
+ *
  * 5. UPDATE IF NEEDED:
  *    - Use update_* functions for modifications
  *    - Follow the same order: lessons → tests → modules → courses
- * 
+ *
  * VALIDATION RULES:
  * - content is required unless contentType === "mixed" and contentBlocks exist
  * - contentBlocks is required when contentType === "mixed"
@@ -37,6 +39,8 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
  * - Duration is auto-calculated from lessons if not provided
  * - Modules can contain lessons and tests
  * - Courses contain modules with proper ordering
+ * - Courses and Lessons can be linked to professions via profession IDs from libservice
+ * - Use get_professions to retrieve available profession IDs before creating/updating entities
  */
 
 // Validate required environment variables
@@ -209,6 +213,24 @@ const toolHandlers = {
     if (args.moduleId) params.append('moduleId', args.moduleId);
     if (args.sortBy) params.append('sortBy', args.sortBy);
     if (args.all) params.append('all', 'true');
+
+    // Handle professions filter - convert profession IDs to filter array
+    if (args.professions && Array.isArray(args.professions)) {
+      const professionIds = args.professions.map(p => {
+        if (typeof p === 'object' && p._id) {
+          return p._id;
+        } else if (typeof p === 'number') {
+          return p.toString();
+        } else if (typeof p === 'string') {
+          return p;
+        }
+        return p;
+      });
+      if (professionIds.length > 0) {
+        params.append('professions', professionIds.join(','));
+      }
+    }
+
     const response = await fetch(`${API_BASE_URL}/lessons?${params}`, { headers: getHeaders() });
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     const data = await response.json();
@@ -221,7 +243,10 @@ const toolHandlers = {
     return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
   },
   async create_lesson(args) {
-    const lessonData = { ...args };
+    let professions = args.professions || [];
+    professions = professions.map(p => typeof p === 'object' && p._id ? p._id : p);
+
+    const lessonData = { ...args, professions };
     const response = await fetch(`${API_BASE_URL}/lessons`, {
       method: 'POST', headers: getHeaders(), body: JSON.stringify(lessonData)
     });
@@ -232,20 +257,23 @@ const toolHandlers = {
   async update_lesson(args) {
     const lessonId = args.lessonId || args._id;
     if (!lessonId) throw new Error('lessonId is required');
-    
+
     // First, get the current lesson to preserve existing relationships
     const currentLessonResponse = await fetch(`${API_BASE_URL}/lessons/${lessonId}`, { headers: getHeaders() });
     if (!currentLessonResponse.ok) throw new Error(`Failed to get current lesson: HTTP ${currentLessonResponse.status}`);
     const currentLesson = await currentLessonResponse.json();
-    
-    const lessonData = { ...args };
+
+    let professions = args.professions || [];
+    professions = professions.map(p => typeof p === 'object' && p._id ? p._id : p);
+
+    const lessonData = { ...args, professions };
     delete lessonData.lessonId;
-    
+
     // If module not provided, keep existing one
     if (!lessonData.module && currentLesson.data?.module) {
       lessonData.module = currentLesson.data.module;
     }
-    
+
     const response = await fetch(`${API_BASE_URL}/lessons/${lessonId}`, {
       method: 'PUT', headers: getHeaders(), body: JSON.stringify(lessonData)
     });
@@ -254,7 +282,7 @@ const toolHandlers = {
     return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
   },
   async get_professions(args) {
-    const response = await fetch(`${API_BASE_URL_PROFESSIONS}/professions?all=true`, { headers: getLibsHeaders() });
+    const response = await fetch(`${API_BASE_URL_PROFESSIONS}/professions?all=true&isShort=true`, { headers: getLibsHeaders() });
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     const data = await response.json();
     return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
@@ -396,10 +424,16 @@ const lessonBaseSchema = {
   content: { type: 'string', description: 'Main lesson content (HTML/Markdown, required if contentType !== "mixed")' },
   duration: { type: 'number', description: 'Lesson duration in minutes (optional, default: 0)' },
   type: { type: 'string', enum: ['text', 'video', 'interactive'], description: 'Lesson type (optional)' },
-  contentType: { 
-    type: 'string', 
-    enum: ['standard', 'labyrinth', 'flippingCards', 'mixed', 'memoryGame', 'tagCloud', 'rolePlayGame', 'textReconstruction', 'presentation', 'fullHtml', 'htmlBlock', 'video'], 
-    description: 'Content type (optional)' 
+  contentType: {
+    type: 'string',
+    enum: ['standard', 'labyrinth', 'flippingCards', 'mixed', 'memoryGame', 'tagCloud', 'rolePlayGame', 'textReconstruction', 'presentation', 'fullHtml', 'htmlBlock', 'video'],
+    description: 'Content type (optional)'
+  },
+  professions: {
+    type: 'array',
+    items: { type: 'string' },
+    description: 'Array of profession IDs from libservice (optional, can be empty array)',
+    default: []
   },
   contentBlocks: {
     type: 'array',
@@ -490,7 +524,15 @@ const getLessonsInputSchema = {
   properties: {
     page: { type: 'number', description: 'Page number (default: 1)' },
     limit: { type: 'number', description: 'Number of lessons per page (default: 10)' },
-    search: { type: 'string', description: 'Search by lesson title or description' }
+    search: { type: 'string', description: 'Search by lesson title or description' },
+    type: { type: 'string', enum: ['text', 'video', 'interactive'], description: 'Filter by lesson type' },
+    contentType: { type: 'string', description: 'Filter by content type' },
+    professions: {
+      type: 'array',
+      items: { type: 'string' },
+      description: 'Array of profession IDs to filter lessons (must be obtained via get_professions tool call)'
+    },
+    all: { type: 'boolean', description: 'Get all lessons without pagination' }
   }
 };
 const getLessonInputSchema = {

@@ -12044,6 +12044,21 @@ var toolHandlers = {
     if (args.moduleId) params.append("moduleId", args.moduleId);
     if (args.sortBy) params.append("sortBy", args.sortBy);
     if (args.all) params.append("all", "true");
+    if (args.professions && Array.isArray(args.professions)) {
+      const professionIds = args.professions.map((p) => {
+        if (typeof p === "object" && p._id) {
+          return p._id;
+        } else if (typeof p === "number") {
+          return p.toString();
+        } else if (typeof p === "string") {
+          return p;
+        }
+        return p;
+      });
+      if (professionIds.length > 0) {
+        params.append("professions", professionIds.join(","));
+      }
+    }
     const response = await fetch(`${API_BASE_URL}/lessons?${params}`, { headers: getHeaders() });
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     const data = await response.json();
@@ -12056,7 +12071,9 @@ var toolHandlers = {
     return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
   },
   async create_lesson(args) {
-    const lessonData = { ...args };
+    let professions = args.professions || [];
+    professions = professions.map((p) => typeof p === "object" && p._id ? p._id : p);
+    const lessonData = { ...args, professions };
     const response = await fetch(`${API_BASE_URL}/lessons`, {
       method: "POST",
       headers: getHeaders(),
@@ -12072,7 +12089,9 @@ var toolHandlers = {
     const currentLessonResponse = await fetch(`${API_BASE_URL}/lessons/${lessonId}`, { headers: getHeaders() });
     if (!currentLessonResponse.ok) throw new Error(`Failed to get current lesson: HTTP ${currentLessonResponse.status}`);
     const currentLesson = await currentLessonResponse.json();
-    const lessonData = { ...args };
+    let professions = args.professions || [];
+    professions = professions.map((p) => typeof p === "object" && p._id ? p._id : p);
+    const lessonData = { ...args, professions };
     delete lessonData.lessonId;
     if (!lessonData.module && currentLesson.data?.module) {
       lessonData.module = currentLesson.data.module;
@@ -12087,7 +12106,7 @@ var toolHandlers = {
     return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
   },
   async get_professions(args) {
-    const response = await fetch(`${API_BASE_URL_PROFESSIONS}/professions?all=true`, { headers: getLibsHeaders() });
+    const response = await fetch(`${API_BASE_URL_PROFESSIONS}/professions?all=true&isShort=true`, { headers: getLibsHeaders() });
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     const data = await response.json();
     return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
@@ -12224,6 +12243,12 @@ var lessonBaseSchema = {
     enum: ["standard", "labyrinth", "flippingCards", "mixed", "memoryGame", "tagCloud", "rolePlayGame", "textReconstruction", "presentation", "fullHtml", "htmlBlock", "video"],
     description: "Content type (optional)"
   },
+  professions: {
+    type: "array",
+    items: { type: "string" },
+    description: "Array of profession IDs from libservice (optional, can be empty array)",
+    default: []
+  },
   contentBlocks: {
     type: "array",
     description: 'Content blocks (required if contentType === "mixed")',
@@ -12313,7 +12338,15 @@ var getLessonsInputSchema = {
   properties: {
     page: { type: "number", description: "Page number (default: 1)" },
     limit: { type: "number", description: "Number of lessons per page (default: 10)" },
-    search: { type: "string", description: "Search by lesson title or description" }
+    search: { type: "string", description: "Search by lesson title or description" },
+    type: { type: "string", enum: ["text", "video", "interactive"], description: "Filter by lesson type" },
+    contentType: { type: "string", description: "Filter by content type" },
+    professions: {
+      type: "array",
+      items: { type: "string" },
+      description: "Array of profession IDs to filter lessons (must be obtained via get_professions tool call)"
+    },
+    all: { type: "boolean", description: "Get all lessons without pagination" }
   }
 };
 var getLessonInputSchema = {
