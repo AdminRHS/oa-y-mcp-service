@@ -1,28 +1,43 @@
 {
   "name": "oa-y-mcp-service",
   "version": "2.0.0",
+  "type": "module",
   "description": "MCP Service for OA-Y Learning Platform",
-  "main": "oa-y-mcp-service.js",
+  "main": "oa-y-mcp-service.cjs",
   "bin": {
-    "oa-y-mcp-service": "./oa-y-mcp-service.js"
+    "oa-y-mcp-service": "./oa-y-mcp-service.cjs"
   },
-  "type": "commonjs",
   "scripts": {
-    "build": "npx esbuild index.js --bundle --platform=node --outfile=oa-y-mcp-service.js --format=cjs",
-    "dev": "node index.js"
+    "build": "npx esbuild index.js --bundle --platform=node --outfile=oa-y-mcp-service.cjs --format=cjs --external:@modelcontextprotocol/sdk --external:dotenv --external:express",
+    "dev": "node oa-y-mcp-service.cjs",
+    "dev:inspect": "set DANGEROUSLY_OMIT_AUTH=true && npx @modelcontextprotocol/inspector npm run dev",
+    "http": "node src/server.js",
+    "http:inspect": "npx @modelcontextprotocol/inspector http://localhost:3000/mcp"
   },
   "files": [
-    "oa-y-mcp-service.js"
+    "oa-y-mcp-service.cjs",
+    "README.md",
+    "LICENSE"
   ],
   "keywords": [
     "mcp",
     "learning",
     "courses",
-    "education"
+    "education",
+    "model-context-protocol"
   ],
   "author": "OA-Y",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AdminRHS/oa-y-mcp-service.git"
+  },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.17.3"
+    "@modelcontextprotocol/sdk": "^1.20.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/inspector": "^0.17.0"
   }
 }

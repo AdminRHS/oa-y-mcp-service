@@ -1,14 +1,16 @@
 # OA-Y MCP Service
 
-A minimal MCP service for managing courses via HTTP API.
+MCP for managing courses via HTTP API at oa-y.com.
 
 ---
 
 ## Integration as MCP Server
 
-You can integrate this service as an external MCP server in your platform or AI system.
+This service supports **two transport protocols** for MCP integration: STDIO and StreamableHTTP.
 
-**Example configuration:**
+### Mode 1: STDIO (Local/Command Line)
+
+For local integration with Cursor, Claude Desktop, or other MCP clients:
 
 ```json
 {
@@ -26,13 +28,25 @@ You can integrate this service as an external MCP server in your platform or AI 
 }
 ```
 
----
+### Mode 2: StreamableHTTP (Remote/HTTP)
 
-## Environment Variables
+For remote integration via StreamableHTTP:
+
+```json
+{
+  "mcpServers": {
+    "oa-y-remote": {
+      "url": "http://your-server:3000/mcp?API_TOKEN=your_token&API_TOKEN_LIBS=your_libs_token&APP_ENV=prod"
+    }
+  }
+}
+```
+
+**When to use each transport:**
+- **STDIO (stdin/stdout, Desktop‑first)**: Ideal for Desktop apps and local IDE integrations (Cursor, Claude Desktop). 
+- **StreamableHTTP (/mcp, Browser/Agents‑first)**: Best for AI agents and browser/cloud clients (including proxies/tunnels). 
 
 ### API_TOKEN
-
-**Required.** Your authentication token for the OA-Y platform.
 
 **How to get your API_TOKEN:**
 
@@ -43,8 +57,6 @@ You can integrate this service as an external MCP server in your platform or AI 
 
 ### API_TOKEN_LIBS
 
-**Required.** Your authentication token for the libs API (professions data from libs.anyemp.com).
-
 **How to get your API_TOKEN_LIBS:**
 
 1. Go to [https://libs.anyemp.com](https://libs.anyemp.com) and log in as an **admin**.
@@ -54,14 +66,15 @@ You can integrate this service as an external MCP server in your platform or AI 
 
 ### APP_ENV
 
-**Required.** Sets the application environment.
-
-- `prod` - Production environment (recommended for all users)
-- `dev` - Development environment (for testing only)
+Environment setting:
+- `prod` - Production environment (default, uses oa-y.com and libs.anyemp.com)
+- `dev` - Development/testing (uses lrn.oa-y.com and libdev.anyemp.com)
 
 ---
 
-## MCP Tools
+## Available MCP Tools
+
+This section describes all available tools for managing courses, lessons, modules, tests, and professions.
 
 ### Course Management
 
@@ -95,12 +108,34 @@ You can integrate this service as an external MCP server in your platform or AI 
 
 - `get_professions` — get all professions (returns array with name and ID)
 
----
+### Creation Order
 
-## Example Requests
+**IMPORTANT:** Follow the correct creation order for courses, modules, lessons, and tests:
+
+1. **CREATE LESSONS FIRST:**
+   - Use `create_lesson` to create individual lessons
+   - Get lesson IDs from the response
+   - For mixed content type, use contentBlocks array instead of content field
+
+2. **CREATE TESTS (OPTIONAL):**
+   - Use `create_test` to create tests
+   - Get test IDs from the response
+
+3. **CREATE MODULES:**
+   - Use `create_module` with lesson IDs and test IDs
+   - Get module IDs from the response
+
+4. **CREATE COURSE WITH MODULES:**
+   - Use `create_course` with module IDs in modules array
+   - The system automatically generates slug, calculates duration, and sets default values
+
+5. **UPDATE IF NEEDED:**
+   - Use `update_*` functions for modifications
+   - Follow the same order: lessons → tests → modules → courses
+
+### Example Requests
 
 **Get Courses:**
-
 ```json
 {
   "name": "get_courses",
@@ -109,7 +144,6 @@ You can integrate this service as an external MCP server in your platform or AI 
 ```
 
 **Get Courses by Professions:**
-
 ```json
 {
   "name": "get_courses",
@@ -121,7 +155,6 @@ You can integrate this service as an external MCP server in your platform or AI 
 ```
 
 **Create Lesson (first):**
-
 ```json
 {
   "name": "create_lesson",
@@ -136,7 +169,6 @@ You can integrate this service as an external MCP server in your platform or AI 
 ```
 
 **Create Module (with lesson IDs):**
-
 ```json
 {
   "name": "create_module",
@@ -150,7 +182,6 @@ You can integrate this service as an external MCP server in your platform or AI 
 ```
 
 **Create Course (with module IDs):**
-
 ```json
 {
   "name": "create_course",
@@ -172,7 +203,6 @@ You can integrate this service as an external MCP server in your platform or AI 
 ```
 
 **Get Professions:**
-
 ```json
 {
   "name": "get_professions",
@@ -181,7 +211,6 @@ You can integrate this service as an external MCP server in your platform or AI 
 ```
 
 **Create Test (with module ID):**
-
 ```json
 {
   "name": "create_test",
@@ -207,7 +236,6 @@ You can integrate this service as an external MCP server in your platform or AI 
 ```
 
 **Update Course (with module IDs):**
-
 ```json
 {
   "name": "update_course",
@@ -230,62 +258,15 @@ You can integrate this service as an external MCP server in your platform or AI 
 }
 ```
 
----
+### Course Filtering by Professions
 
-## Creation Order
+The `get_courses` tool supports filtering courses by profession IDs:
 
-**IMPORTANT:** Follow the correct creation order for courses, modules, lessons, and tests:
+**Workflow:**
+1. Call `get_professions` to get all available professions with their IDs
+2. Use profession IDs in `get_courses` with the `professions` parameter
 
-1. **CREATE LESSONS FIRST:**
-
-   - Use `create_lesson` to create individual lessons
-   - Get lesson IDs from the response
-   - For mixed content type, use contentBlocks array instead of content field
-
-2. **CREATE TESTS (OPTIONAL):**
-
-   - Use `create_test` to create tests
-   - Get test IDs from the response
-
-3. **CREATE MODULES:**
-
-   - Use `create_module` with lesson IDs and test IDs
-   - Get module IDs from the response
-
-4. **CREATE COURSE WITH MODULES:**
-
-   - Use `create_course` with module IDs in modules array
-   - The system automatically generates slug, calculates duration, and sets default values
-
-5. **UPDATE IF NEEDED:**
-   - Use `update_*` functions for modifications
-   - Follow the same order: lessons → tests → modules → courses
-
----
-
-## Course Filtering by Professions
-
-The `get_courses` tool supports filtering courses by profession IDs. Here's how to use it:
-
-### Workflow:
-
-1. **Get Professions:** Call `get_professions` to get all available professions with their IDs
-2. **Filter Courses:** Use profession IDs in `get_courses` with the `professions` parameter
-
-### Example:
-
-```json
-{
-  "name": "get_courses",
-  "arguments": {
-    "professions": [68, 69],
-    "difficulty": "beginner"
-  }
-}
-```
-
-### Parameters:
-
+**Parameters:**
 - `professions` - Array of profession IDs (numbers)
 - `difficulty` - Filter by difficulty: "beginner", "intermediate", "advanced"
 - `search` - Search by course name or description
@@ -295,94 +276,290 @@ The `get_courses` tool supports filtering courses by profession IDs. Here's how 
 
 ---
 
-## Course and Lesson URL Format
+## Testing
 
-To get a direct link to a course or lesson on the OA-Y platform, use the following formats:
+This section describes how to test the MCP service in different modes.
 
-- **Course:**
-  ```
-  https://oa-y.com/courses/<course._id>
-  ```
-- **Lesson:**
-  ```
-  https://oa-y.com/courses/<course._id>/modules/<module._id>/lessons/<lesson._id>
-  ```
+### Testing Mode 1: STDIO (Local/Command Line)
 
-**Example:**
+**Prerequisites:**
+- Node.js installed
+- API tokens configured (see [API_TOKEN](#api_token) and [API_TOKEN_LIBS](#api_token_libs) sections)
 
-```
-https://oa-y.com/courses/681230548967b4c2d5ba1e9b/modules/680114ed65861c900d25fd59/lessons/680114ed65861c900d25fd5a
-```
+**Steps:**
 
----
-
-## Notes
-
-- `APP_ENV`, `API_TOKEN`, and `API_TOKEN_LIBS` are required.
-- Production mode (`APP_ENV=prod`) is recommended for all users.
-- Development mode (`APP_ENV=dev`) is for testing only.
-- API URLs are automatically selected based on APP_ENV.
-- Platform: [https://oa-y.com](https://oa-y.com)
-
----
-
-## Local Development
-
-### Quick Start (local)
-
-1. **Build the project into a single file:**
-   ```bash
-   npm run build
-   ```
-   or directly:
-   ```bash
-   npx esbuild index.js --bundle --platform=node --outfile=oa-y-mcp-service.js --format=esm
-   ```
-2. **Run the service:**
-   ```bash
-   node oa-y-mcp-service.js
-   ```
-3. **Set the environment variables:**
-   ```bash
-   export API_TOKEN=your_token
-   export API_TOKEN_LIBS=your_libs_token
-   export APP_ENV=prod
-   ```
-   (on Windows: `set API_TOKEN=your_token`, `set API_TOKEN_LIBS=your_libs_token`, and `set APP_ENV=prod`)
-
-### Quick Start (development)
-
-**For testing:**
-
-1. Install dependencies:
+1. **Install dependencies:**
    ```bash
    npm install
    ```
-2. Set environment variables:
-   - `APP_ENV=dev`
-   - `API_TOKEN=your_token`
-   - `API_TOKEN_LIBS=your_libs_token`
-3. Start the service:
+
+2. **Build the bundled version:**
    ```bash
-   node index.js
+   npm run build
+   ```
+   This creates `oa-y-mcp-service.cjs` file that will be used by MCP clients.
+
+3. **Configure your MCP client (Cursor/Claude Desktop):**
+
+   Add to your MCP settings file:
+   ```json
+   {
+     "mcpServers": {
+       "oa-y-local": {
+         "command": "node",
+         "args": ["c:/Projects/RH/oa-y-mcp-service/oa-y-mcp-service.cjs"],
+         "env": {
+           "APP_ENV": "prod",
+           "API_TOKEN": "your_token",
+           "API_TOKEN_LIBS": "your_libs_token"
+         }
+       }
+     }
+   }
    ```
 
-### Local Node Integration
+4. **Restart your MCP client** (Cursor/Claude Desktop)
 
-**For local development:**
+5. **Test the tools:**
+   - Try calling `get_professions` to verify connection
+   - Try creating a lesson with `create_lesson`
+   - Verify that all tools are available and working
 
-```json
-{
-  "mcpServers": {
-    "oa-y-mcp-service": {
-      "command": "node",
-      "args": ["/path/to/oa-y-mcp-service/oa-y-mcp-service.js"],
-      "env": {
-        "APP_ENV": "prod",
-        "API_TOKEN": "your_token",
-        "API_TOKEN_LIBS": "your_libs_token"
-      }
-    }
-  }
-}
+**For development/debugging:**
+```bash
+npm run dev          # Run in STDIO mode
+npm run dev:inspect  # Run with Node Inspector
 ```
+
+### Testing Mode 2: StreamableHTTP (Remote/HTTP)
+
+**Prerequisites:**
+- Node.js installed
+- API tokens configured (see [API_TOKEN](#api_token) and [API_TOKEN_LIBS](#api_token_libs) sections)
+
+**Steps:**
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Start the HTTP server:**
+   ```bash
+   npm start
+   # or
+   npm run http
+   ```
+
+3. **Test health endpoint:**
+   ```bash
+   curl http://localhost:3000/health
+   ```
+
+4. **Configure your MCP client (Cursor/Claude Desktop):**
+
+   Add to your MCP settings file:
+   ```json
+   {
+     "mcpServers": {
+       "oa-y-http": {
+         "url": "http://localhost:3000/mcp?API_TOKEN=your_token&API_TOKEN_LIBS=your_libs_token&APP_ENV=prod"
+       }
+     }
+   }
+   ```
+
+5. **Restart your MCP client** (Cursor/Claude Desktop)
+
+6. **Test the tools:**
+   - Try calling `get_professions` to verify connection
+   - Try creating a lesson with `create_lesson`
+   - Verify that all tools are available and working
+
+**For development/debugging:**
+```bash
+npm run http:inspect  # Run HTTP server with Node Inspector
+```
+
+**Available HTTP endpoints:**
+- `GET /mcp` — StreamableHTTP handshake/stream
+- `POST /mcp` — MCP protocol endpoint
+- `GET /health` — health check
+- `GET /` — service information
+
+**Testing with public URL (localtunnel):**
+
+For testing with remote access:
+
+1. **Install localtunnel:**
+   ```bash
+   npm install -g localtunnel
+   ```
+
+2. **Start your local server:**
+   ```bash
+   npm start
+   ```
+
+3. **Create a public tunnel:**
+   ```bash
+   lt --port 3000 --local-host localhost
+   ```
+
+4. **Use the provided URL in your MCP client:**
+   ```json
+   {
+     "mcpServers": {
+       "oa-y-remote": {
+         "url": "https://random-subdomain.loca.lt/mcp?API_TOKEN=your_token&API_TOKEN_LIBS=your_libs_token&APP_ENV=prod"
+       }
+     }
+   }
+   ```
+
+---
+
+## Deployment
+
+This section describes how to deploy the MCP service for production use.
+
+### Deployment Mode 1: STDIO (NPM Package via GitHub)
+
+This mode allows users to install your MCP service directly from GitHub using `npx`.
+
+**Requirements:**
+- Repository pushed to GitHub
+- Built `oa-y-mcp-service.cjs` file committed to repository
+
+**Deployment Steps:**
+
+1. **Build the bundled version:**
+   ```bash
+   npm run build
+   ```
+   This creates `oa-y-mcp-service.cjs` — the bundled file that includes all dependencies.
+
+2. **Commit and push to GitHub:**
+   ```bash
+   git add oa-y-mcp-service.cjs
+   git commit -m "Build MCP service for distribution"
+   git push origin main
+   ```
+
+3. **Users can now install via npx:**
+   ```json
+   {
+     "mcpServers": {
+       "oa-y-mcp-service": {
+         "command": "npx",
+         "args": ["github:AdminRHS/oa-y-mcp-service"],
+         "env": {
+           "APP_ENV": "prod",
+           "API_TOKEN": "user_token",
+           "API_TOKEN_LIBS": "user_libs_token"
+         }
+       }
+     }
+   }
+   ```
+
+**Important:**
+- Always build before pushing: `npm run build`
+- The built file `oa-y-mcp-service.cjs` must be committed to the repository
+- Users will download and run this file via `npx`
+
+### Deployment Mode 2: StreamableHTTP (Docker on Server)
+
+This mode deploys the MCP service as an HTTP server using Docker.
+
+**Requirements:**
+- Docker and Docker Compose installed on server
+- Server with public IP or domain name
+
+**Deployment Steps:**
+
+1. **On your server, clone the repository:**
+   ```bash
+   git clone https://github.com/AdminRHS/oa-y-mcp-service.git
+   cd oa-y-mcp-service
+   ```
+
+2. **Create `.env` file (optional, for custom port):**
+   ```bash
+   PORT=3000
+   ```
+
+3. **Start the service with Docker Compose:**
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Verify the service is running:**
+   ```bash
+   curl http://localhost:3000/health
+   ```
+
+5. **Users can now connect via HTTP:**
+   ```json
+   {
+     "mcpServers": {
+       "oa-y-remote": {
+         "url": "http://your-server-ip:3000/mcp?API_TOKEN=user_token&API_TOKEN_LIBS=user_libs_token&APP_ENV=prod"
+       }
+     }
+   }
+   ```
+
+**Docker Compose Configuration:**
+
+The service uses [docker-compose.yml](docker-compose.yml) and [Dockerfile](Dockerfile):
+- Builds image from Node.js Alpine
+- Installs dependencies
+- Exposes port 3000 (configurable via `.env`)
+- Auto-restarts on failure
+
+**Updating the Deployment:**
+
+To update the service on the server:
+```bash
+git pull origin main
+docker-compose down
+docker-compose up -d --build
+```
+
+**Monitoring:**
+
+View logs:
+```bash
+docker-compose logs -f
+```
+
+Check container status:
+```bash
+docker-compose ps
+```
+
+**Production Recommendations:**
+- Use a reverse proxy (nginx/traefik) for HTTPS
+- Set up proper firewall rules
+- Use environment-specific API tokens
+- Configure monitoring and alerts
+- Set up automated backups
+
+---
+
+## Response Format
+
+All responses follow the MCP (Model Context Protocol) JSON-RPC 2.0 format. See [MCP documentation](https://modelcontextprotocol.io) for details.
+
+---
+
+## Available Scripts
+
+- `npm run dev` - Run STDIO mode (local development)
+- `npm run dev:inspect` - Run STDIO mode with Inspector
+- `npm run http` - Run HTTP server mode
+- `npm run http:inspect` - Run HTTP server with Inspector
+- `npm start` - Start HTTP server (default)
+- `npm run build` - Build bundled version (oa-y-mcp-service.cjs)
+

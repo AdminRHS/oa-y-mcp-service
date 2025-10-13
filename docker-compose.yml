@@ -1,0 +1,12 @@
+version: "3.9"
+services:
+  oa-y-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: oa-y-mcp
+    ports:
+      - "${PORT}:${PORT}"
+    environment:
+      - PORT=${PORT}
+    restart: unless-stopped
