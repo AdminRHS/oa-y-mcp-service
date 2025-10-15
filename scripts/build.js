@@ -49,7 +49,7 @@ builds.forEach(({ name, entry, output }) => {
   console.log(`📦 Building ${name}...`);
   try {
     execSync(
-      `npx esbuild ${entry} --bundle --platform=node --outfile=${output} --format=cjs --external:@modelcontextprotocol/sdk --external:dotenv`,
+      `npx esbuild ${entry} --bundle --platform=node --outfile=${output} --format=cjs --external:dotenv`,
       { stdio: 'inherit', cwd: rootDir }
     );
     console.log(`✅ ${name} built successfully\n`);

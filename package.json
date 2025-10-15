@@ -8,6 +8,7 @@
     "oa-y-mcp-service": "./bin/oa-y-mcp-service.cjs"
   },
   "scripts": {
+    "prepare": "node scripts/build.js",
     "build": "node scripts/build.js",
     "dev": "node index.js",
     "dev:inspect": "set DANGEROUSLY_OMIT_AUTH=true && npx @modelcontextprotocol/inspector node index.js",
