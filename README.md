@@ -17,7 +17,7 @@ For local integration with Cursor, Claude Desktop, or other MCP clients:
   "mcpServers": {
     "oa-y-mcp-service": {
       "command": "npx",
-      "args": ["github:AdminRHS/oa-y-mcp-service"],
+      "args": ["-y", "github:AdminRHS/oa-y-mcp-service"],
       "env": {
         "APP_ENV": "prod",
         "API_TOKEN": "your_token",
