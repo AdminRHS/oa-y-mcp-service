@@ -2,19 +2,23 @@
   "name": "oa-y-mcp-service",
   "version": "2.0.0",
   "description": "MCP Service for OA-Y Learning Platform",
-  "main": "oa-y-mcp-service.cjs",
+  "type": "module",
+  "main": "index.js",
   "bin": {
-    "oa-y-mcp-service": "./oa-y-mcp-service.cjs"
+    "oa-y-mcp-service": "./bin/oa-y-mcp-service.cjs"
   },
   "scripts": {
-    "build": "npx esbuild index.js --bundle --platform=node --outfile=oa-y-mcp-service.cjs --format=cjs --external:@modelcontextprotocol/sdk --external:dotenv --external:express",
-    "dev": "node oa-y-mcp-service.cjs",
-    "dev:inspect": "set DANGEROUSLY_OMIT_AUTH=true && npx @modelcontextprotocol/inspector npm run dev",
+    "build": "node scripts/build.js",
+    "dev": "node index.js",
+    "dev:inspect": "set DANGEROUSLY_OMIT_AUTH=true && npx @modelcontextprotocol/inspector node index.js",
     "http": "node src/server.js",
     "http:inspect": "npx @modelcontextprotocol/inspector http://localhost:3000/mcp"
   },
   "files": [
-    "oa-y-mcp-service.cjs",
+    "bin/",
+    "dist/",
+    "src/",
+    "index.js",
     "README.md",
     "LICENSE"
   ],
@@ -37,6 +41,7 @@
     "express": "^5.1.0"
   },
   "devDependencies": {
-    "@modelcontextprotocol/inspector": "^0.17.0"
+    "@modelcontextprotocol/inspector": "^0.17.0",
+    "esbuild": "^0.24.2"
   }
 }

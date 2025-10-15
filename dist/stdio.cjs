@@ -1,8 +1,5 @@
 #!/usr/bin/env node
 
-// index.js
-var import_config3 = require("dotenv/config");
-
 // src/transports/stdio.js
 var import_server = require("@modelcontextprotocol/sdk/server/index.js");
 var import_stdio = require("@modelcontextprotocol/sdk/server/stdio.js");
@@ -414,36 +411,26 @@ var toolDefinitions = [
 
 // src/core/config.js
 var import_config = require("dotenv/config");
-function validateEnvironment() {
-  const required = ["APP_ENV", "API_TOKEN", "API_TOKEN_LIBS"];
-  const missing = required.filter((key) => !process.env[key]);
-  if (missing.length > 0) {
-    throw new Error(
-      `Missing required environment variables: ${missing.join(", ")}
-Please set them in your .env file or environment.`
-    );
-  }
-  const { APP_ENV } = process.env;
-  if (APP_ENV !== "dev" && APP_ENV !== "prod") {
-    throw new Error(
-      `Invalid APP_ENV value: "${APP_ENV}". Must be "dev" or "prod"`
-    );
-  }
+function normalizeAppEnv(value) {
+  return value === "dev" || value === "prod" ? value : "prod";
 }
-validateEnvironment();
 var config = {
   // Environment
-  env: process.env.APP_ENV,
-  isDev: process.env.APP_ENV === "dev",
-  isProd: process.env.APP_ENV === "prod",
+  env: normalizeAppEnv(process.env.APP_ENV || "prod"),
+  get isDev() {
+    return this.env === "dev";
+  },
+  get isProd() {
+    return this.env === "prod";
+  },
   // Tokens
   apiToken: process.env.API_TOKEN,
   apiTokenLibs: process.env.API_TOKEN_LIBS,
   // Server
   port: parseInt(process.env.PORT || "3000", 10),
   // API URLs
-  apiBaseUrl: process.env.APP_ENV === "dev" ? "https://lrn.oa-y.com/api-tokens" : "https://oa-y.com/api-tokens",
-  apiBaseUrlProfessions: process.env.APP_ENV === "dev" ? "https://libdev.anyemp.com/api/token" : "https://libs.anyemp.com/api/token"
+  apiBaseUrl: (process.env.APP_ENV || "prod") === "dev" ? "https://lrn.oa-y.com/api-tokens" : "https://oa-y.com/api-tokens",
+  apiBaseUrlProfessions: (process.env.APP_ENV || "prod") === "dev" ? "https://libdev.anyemp.com/api/token" : "https://libs.anyemp.com/api/token"
 };
 function getApiHeaders() {
   return {

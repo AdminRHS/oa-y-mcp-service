@@ -80,8 +80,6 @@ export function createStreamableHttpApp() {
    * Some clients start with a GET request to establish a stream/handshake
    */
   app.get('/mcp', async (req, res) => {
-    console.log('📡 StreamableHTTP GET request received');
-
     try {
       // Optional runtime overrides via query params
       const { API_TOKEN, API_TOKEN_LIBS, APP_ENV } = req.query;
@@ -96,7 +94,6 @@ export function createStreamableHttpApp() {
 
       // Clean up transport when response closes
       res.on('close', () => {
-        console.log('🔌 Response closed (GET), cleaning up transport');
         transport.close();
       });
 
@@ -105,8 +102,6 @@ export function createStreamableHttpApp() {
 
       // Handle the request (will create an SSE stream per StreamableHTTP spec)
       await transport.handleRequest(req, res);
-
-      console.log('✅ GET /mcp handled successfully');
     } catch (error) {
       console.error('❌ Error handling GET /mcp:', error);
       if (!res.headersSent) {
@@ -121,8 +116,6 @@ export function createStreamableHttpApp() {
    * Transport is created per-request as recommended by SDK
    */
   app.post('/mcp', async (req, res) => {
-    console.log('📡 StreamableHTTP POST request received');
-
     try {
       // Optional runtime overrides via query/body
       const { API_TOKEN, API_TOKEN_LIBS, APP_ENV } = req.query;
@@ -140,7 +133,6 @@ export function createStreamableHttpApp() {
 
       // Clean up transport when response closes
       res.on('close', () => {
-        console.log('🔌 Response closed, cleaning up transport');
         transport.close();
       });
 
@@ -150,15 +142,8 @@ export function createStreamableHttpApp() {
       // Handle the request
       await transport.handleRequest(req, res, req.body);
 
-      console.log('✅ Request handled successfully');
-
     } catch (error) {
-      console.error('❌ Error handling request:', error);
-      console.error('Error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      });
+      console.error('❌ Error handling MCP request:', error);
 
       if (!res.headersSent) {
         res.status(500).json({
@@ -240,28 +225,9 @@ export function startStreamableHttpServer(port = config.port) {
   const app = createStreamableHttpApp();
 
   const server = app.listen(port, () => {
-    console.log(`✅ OAY MCP HTTP Server (StreamableHTTP Mode) запущено на порті ${port}`);
+    console.log(`✅ MCP HTTP Server started on port ${port}`);
     console.log(`📍 Environment: ${config.env}`);
-    console.log(`🔓 Authorization: DISABLED (no auth required)`);
-    console.log('');
-    console.log('🔌 MCP StreamableHTTP Endpoint:');
-    console.log(`   POST http://localhost:${port}/mcp`);
-    console.log('');
-    console.log(`ℹ️  Health check: http://localhost:${port}/health`);
-    console.log('');
-    console.log('⚠️  NOTE: SSE transport is DEPRECATED - using modern StreamableHTTP');
-    console.log('');
-    console.log('📝 Configure in Claude Desktop/Cursor mcp.json:');
-    console.log('   {');
-    console.log('     "mcpServers": {');
-    console.log('       "oa-y-mcp": {');
-    console.log(`         "url": "http://localhost:${port}/mcp"`);
-    console.log('       }');
-    console.log('     }');
-    console.log('   }');
-    console.log('');
-    console.log('💡 For Inspector:');
-    console.log(`   npx @modelcontextprotocol/inspector http://localhost:${port}/mcp`);
+    console.log(`🔌 Endpoint: http://localhost:${port}/mcp`);
   });
 
   return server;
