@@ -10,6 +10,7 @@
  */
 const lessonBaseSchema = {
   title: { type: 'string', description: 'Lesson title (required, automatically generates slug)' },
+  description: { type: 'string', description: 'Lesson description (optional)' },
   content: { type: 'string', description: 'Main lesson content (HTML/Markdown, required if contentType !== "mixed")' },
   duration: { type: 'number', description: 'Lesson duration in minutes (optional, default: 0)' },
   type: { type: 'string', enum: ['text', 'video', 'interactive'], description: 'Lesson type (optional)' },
@@ -18,10 +19,18 @@ const lessonBaseSchema = {
     enum: ['standard', 'labyrinth', 'flippingCards', 'mixed', 'memoryGame', 'tagCloud', 'rolePlayGame', 'textReconstruction', 'presentation', 'fullHtml', 'htmlBlock', 'video'],
     description: 'Content type (optional)'
   },
+  image: { type: 'string', description: 'Lesson image URL (optional)' },
   professions: {
     type: 'array',
     items: { type: 'string' },
     description: 'Array of profession IDs from libservice (optional, can be empty array)',
+    default: []
+  },
+  skills: {
+    type: 'array',
+    description: 'Array of skills (optional)',
+    items: { type: 'string' },
+    description: 'Array of skill IDs (optional, can be empty array)',
     default: []
   },
   contentBlocks: {
@@ -109,6 +118,12 @@ const courseBaseSchema = {
     description: 'Array of profession IDs from microservice (optional, can be empty array)',
     default: []
   },
+  tools: {
+    type: 'array',
+    items: { type: 'string' },
+    description: 'Array of tool IDs from libraries service (optional, can be empty array)',
+    default: []
+  },
   difficulty: {
     type: 'string',
     enum: ['beginner', 'intermediate', 'advanced'],
@@ -124,16 +139,12 @@ const moduleBaseSchema = {
   title: { type: 'string', description: 'Module title (required, automatically generates slug)' },
   content: { type: 'string', description: 'Module description (required, plain text)' },
   description: { type: 'string', description: 'Module description (optional)' },
+  videoUrl: { type: 'string', description: 'Video URL for module (optional)' },
+  previewImage: { type: 'string', description: 'Preview image URL (optional)' },
   lessons: {
     type: 'array',
     items: { type: 'string' },
     description: 'Array of lesson IDs (can be empty array)',
-    default: []
-  },
-  tests: {
-    type: 'array',
-    items: { type: 'string' },
-    description: 'Array of test IDs (can be empty array)',
     default: []
   },
   isDraft: { type: 'boolean', description: 'Is draft (optional, default: true)' }
@@ -145,7 +156,7 @@ const moduleBaseSchema = {
 const testBaseSchema = {
   title: { type: 'string', description: 'Test title (required, automatically generates slug)' },
   description: { type: 'string', description: 'Test description (optional)' },
-  module: { type: 'string', description: 'Module ID (required)' },
+  lesson: { type: 'string', description: 'Lesson ID (required)' },
   questions: {
     type: 'array',
     items: {
@@ -169,7 +180,7 @@ const testBaseSchema = {
             },
             points: { type: 'number', description: 'Points for this question', default: 1 }
           },
-          required: ['question', 'type', 'options', 'points']
+          required: ['question', 'type', 'options']
         },
         // Multiple Choice
         {
@@ -190,7 +201,7 @@ const testBaseSchema = {
             },
             points: { type: 'number', description: 'Points for this question', default: 1 }
           },
-          required: ['question', 'type', 'options', 'points']
+          required: ['question', 'type', 'options']
         },
         // True-False
         {
@@ -202,7 +213,7 @@ const testBaseSchema = {
             correctAnswer: { type: 'string', enum: ['true', 'false'], description: 'Correct answer' },
             points: { type: 'number', description: 'Points for this question', default: 1 }
           },
-          required: ['question', 'type', 'options', 'correctAnswer', 'points']
+          required: ['question', 'type', 'options', 'correctAnswer']
         },
         // Text
         {
@@ -214,7 +225,7 @@ const testBaseSchema = {
             correctAnswer: { type: 'string', description: 'Correct answer text' },
             points: { type: 'number', description: 'Points for this question', default: 1 }
           },
-          required: ['question', 'type', 'options', 'correctAnswer', 'points']
+          required: ['question', 'type', 'options', 'correctAnswer']
         },
         // Memory
         {
@@ -235,7 +246,7 @@ const testBaseSchema = {
             },
             points: { type: 'number', description: 'Points for this question', default: 1 }
           },
-          required: ['question', 'type', 'options', 'points']
+          required: ['question', 'type', 'options']
         }
       ]
     },
@@ -419,8 +430,8 @@ export const createTestInputSchema = {
   properties: {
     ...testBaseSchema
   },
-  required: ['title', 'module', 'questions'],
-  description: 'Create a new test. IMPORTANT: Create modules first using create_module tool. The system automatically generates slug and sets default values.'
+  required: ['title', 'lesson', 'questions'],
+  description: 'Create a new test. IMPORTANT: Create lessons first using create_lesson tool, then attach tests to lessons. The system automatically generates slug and sets default values.'
 };
 
 export const updateTestInputSchema = {
@@ -429,8 +440,8 @@ export const updateTestInputSchema = {
     testId: { type: 'string', description: 'Test ID for update' },
     ...testBaseSchema
   },
-  required: ['testId', 'title', 'module', 'questions'],
-  description: 'Update an existing test. IMPORTANT: For new tests, create modules first using create_module tool.'
+  required: ['testId', 'title', 'lesson', 'questions'],
+  description: 'Update an existing test. IMPORTANT: Tests are attached to lessons, not modules.'
 };
 
 /**
