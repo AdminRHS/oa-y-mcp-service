@@ -280,6 +280,9 @@ var toolHandlers = {
     if (!lessonData.module && currentLesson.data?.module) {
       lessonData.module = currentLesson.data.module;
     }
+    if (!lessonData.tests && currentLesson.data?.tests) {
+      lessonData.tests = currentLesson.data.tests.map((test) => test.id || test);
+    }
     const url = buildApiUrl(`/lessons/${lessonId}`);
     const response = await fetch(url, {
       method: "PUT",
@@ -361,9 +364,6 @@ var toolHandlers = {
     if (!moduleData.lessons && currentModule.data?.lessons) {
       moduleData.lessons = currentModule.data.lessons.map((lesson) => lesson.id);
     }
-    if (!moduleData.tests && currentModule.data?.tests) {
-      moduleData.tests = currentModule.data.tests.map((test) => test.id);
-    }
     const url = buildApiUrl(`/modules/${moduleId}`);
     const response = await fetch(url, {
       method: "PUT",
@@ -431,8 +431,8 @@ var toolHandlers = {
     const currentTest = await currentTestResponse.json();
     const testData = { ...args };
     delete testData.testId;
-    if (!testData.module && currentTest.data?.module) {
-      testData.module = currentTest.data.module;
+    if (!testData.lesson && currentTest.data?.lesson) {
+      testData.lesson = currentTest.data.lesson;
     }
     const url = buildApiUrl(`/tests/${testId}`);
     const response = await fetch(url, {

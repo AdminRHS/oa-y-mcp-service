@@ -288,6 +288,11 @@ export const toolHandlers = {
       lessonData.module = currentLesson.data.module;
     }
 
+    // If tests not provided, keep existing ones
+    if (!lessonData.tests && currentLesson.data?.tests) {
+      lessonData.tests = currentLesson.data.tests.map(test => test.id || test);
+    }
+
     const url = buildApiUrl(`/lessons/${lessonId}`);
     const response = await fetch(url, {
       method: 'PUT',
@@ -386,18 +391,13 @@ export const toolHandlers = {
 
     const currentModule = await currentModuleResponse.json();
 
-    // Preserve existing lessons and tests if not provided in update
+    // Preserve existing lessons if not provided in update
     const moduleData = { ...args };
     delete moduleData.moduleId;
 
     // If lessons not provided, keep existing ones
     if (!moduleData.lessons && currentModule.data?.lessons) {
       moduleData.lessons = currentModule.data.lessons.map(lesson => lesson.id);
-    }
-
-    // If tests not provided, keep existing ones
-    if (!moduleData.tests && currentModule.data?.tests) {
-      moduleData.tests = currentModule.data.tests.map(test => test.id);
     }
 
     const url = buildApiUrl(`/modules/${moduleId}`);
@@ -487,9 +487,9 @@ export const toolHandlers = {
     const testData = { ...args };
     delete testData.testId;
 
-    // If module not provided, keep existing one
-    if (!testData.module && currentTest.data?.module) {
-      testData.module = currentTest.data.module;
+    // If lesson not provided, keep existing one
+    if (!testData.lesson && currentTest.data?.lesson) {
+      testData.lesson = currentTest.data.lesson;
     }
 
     const url = buildApiUrl(`/tests/${testId}`);

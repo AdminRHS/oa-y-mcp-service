@@ -37,10 +37,13 @@
 
 ## Data Schemas
 
-- **Courses**: contain modules, professions, difficulty, duration, image, draft flag
-- **Modules**: contain lessons (by id), tests, achievements, description, duration
-- **Lessons**: support various types and content formats, may include content blocks, resources, exercises
+- **Courses**: contain modules (with order), professions, tools, difficulty, duration, image, draft flag
+- **Modules**: contain lessons (by id), achievements, description, duration, videoUrl, previewImage
+- **Lessons**: support various types and content formats, may include content blocks, resources, exercises, tests (tests are attached to lessons!)
+- **Tests**: attached to lessons (not modules), contain questions, passingScore, timeLimit
 - **Professions**: list of professions, obtained via a separate request
+
+**IMPORTANT**: Tests are attached to Lessons, not to Modules!
 
 ---
 

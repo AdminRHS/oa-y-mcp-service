@@ -101,8 +101,8 @@ This section describes all available tools for managing courses, lessons, module
 
 - `get_tests` — get a list of tests
 - `get_test` — get a test by id
-- `create_test` — create a test (requires module ID from create_module)
-- `update_test` — update a test (requires module ID from create_module)
+- `create_test` — create a test (requires lesson ID from create_lesson, tests are attached to lessons)
+- `update_test` — update a test (requires lesson ID from create_lesson, tests are attached to lessons)
 
 ### Profession Management
 
@@ -110,28 +110,72 @@ This section describes all available tools for managing courses, lessons, module
 
 ### Creation Order
 
-**IMPORTANT:** Follow the correct creation order for courses, modules, lessons, and tests:
+**IMPORTANT:** Follow the correct sequential creation order for courses, modules, lessons, and tests.
 
-1. **CREATE LESSONS FIRST:**
-   - Use `create_lesson` to create individual lessons
-   - Get lesson IDs from the response
-   - For mixed content type, use contentBlocks array instead of content field
+**Sequential workflow:**
 
-2. **CREATE TESTS (OPTIONAL):**
-   - Use `create_test` to create tests
-   - Get test IDs from the response
+1. **CREATE COURSE:**
+   - Use `create_course` to create the course structure
+   - Can start with empty modules array, will be updated later
 
-3. **CREATE MODULES:**
-   - Use `create_module` with lesson IDs and test IDs
-   - Get module IDs from the response
+2. **CREATE MODULE (at least one module required):**
+   - Use `create_module` to create a module
+   - Can start with empty lessons array
+   - Get module ID from the response
 
-4. **CREATE COURSE WITH MODULES:**
-   - Use `create_course` with module IDs in modules array
-   - The system automatically generates slug, calculates duration, and sets default values
+3. **CREATE FIRST LESSON (at least one lesson per module required):**
+   - Use `create_lesson` to create a lesson
+   - Get lesson ID from the response
 
-5. **UPDATE IF NEEDED:**
-   - Use `update_*` functions for modifications
-   - Follow the same order: lessons → tests → modules → courses
+4. **CREATE TEST FOR LESSON (optional):**
+   - Use `create_test` with the lesson ID to attach test to this lesson
+   - **IMPORTANT:** Tests are attached to lessons, not modules
+   - Get test ID from the response
+
+5. **UPDATE LESSON WITH TEST (if test was created):**
+   - Use `update_lesson` to add test IDs to the lesson's tests array
+
+6. **CREATE NEXT LESSON (repeat steps 3-5):**
+   - Create another lesson for the same module
+   - Create tests for it
+   - Update lesson with test IDs
+   - Repeat until all lessons for this module are created
+
+7. **UPDATE MODULE WITH ALL LESSON IDS:**
+   - Use `update_module` to add all created lesson IDs to the module
+   - Example: `lessons: ["lesson_id_1", "lesson_id_2", "lesson_id_3"]`
+
+8. **CREATE NEXT MODULE (repeat steps 2-7):**
+   - Create next module
+   - Create lessons for it
+   - Create tests for lessons
+   - Update lessons and module
+   - Repeat until all modules are created
+
+9. **UPDATE COURSE WITH ALL MODULE IDS:**
+   - Use `update_course` to add all module IDs with their order
+   - Example: `modules: [{ module: "module_id_1", order: 1 }, { module: "module_id_2", order: 2 }]`
+
+**Required structure:**
+- Course must contain at least one module
+- Module must contain at least one lesson
+- Tests are optional but attached to lessons (not modules)
+- Each module has ordered lessons
+- Each course has ordered modules
+
+**Data flow:**
+```
+Course
+  └─ Module 1 (order: 1)
+      ├─ Lesson 1
+      │   └─ Test 1 (optional)
+      ├─ Lesson 2
+      │   └─ Test 2 (optional)
+      └─ ...
+  └─ Module 2 (order: 2)
+      ├─ Lesson 1
+      └─ ...
+```
 
 ### Example Requests
 
@@ -160,10 +204,15 @@ This section describes all available tools for managing courses, lessons, module
   "name": "create_lesson",
   "arguments": {
     "title": "Lesson Title",
+    "description": "Lesson description (optional)",
     "type": "text",
     "contentType": "standard",
     "content": "Lesson content here",
-    "duration": 30
+    "image": "https://example.com/lesson-image.jpg",
+    "duration": 30,
+    "professions": [],
+    "skills": [],
+    "tests": []
   }
 }
 ```
@@ -175,11 +224,14 @@ This section describes all available tools for managing courses, lessons, module
   "arguments": {
     "title": "Module Title",
     "content": "Module description (plain text)",
-    "lessons": ["lesson_id_from_create_lesson"],
-    "tests": ["test_id_from_create_test"]
+    "description": "Optional detailed description",
+    "videoUrl": "https://example.com/video.mp4",
+    "previewImage": "https://example.com/preview.jpg",
+    "lessons": ["lesson_id_from_create_lesson"]
   }
 }
 ```
+**Note:** Modules don't contain tests directly. Tests are attached to lessons.
 
 **Create Course (with module IDs):**
 ```json
@@ -210,14 +262,14 @@ This section describes all available tools for managing courses, lessons, module
 }
 ```
 
-**Create Test (with module ID):**
+**Create Test (with lesson ID):**
 ```json
 {
   "name": "create_test",
   "arguments": {
     "title": "Test Title",
     "description": "Test description",
-    "module": "module_id_from_create_module",
+    "lesson": "lesson_id_from_create_lesson",
     "questions": [
       {
         "question": "What is HTML?",
@@ -234,6 +286,7 @@ This section describes all available tools for managing courses, lessons, module
   }
 }
 ```
+**IMPORTANT:** Tests are attached to lessons, not modules. Use lesson ID from `create_lesson`.
 
 **Update Course (with module IDs):**
 ```json
