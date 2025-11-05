@@ -321,8 +321,9 @@ export const toolHandlers = {
     return await response.json();
   },
 
-  async get_tools(args) {
-    const url = buildLibsUrl('/tools?all=true&isShort=true');
+
+  async get_skills(args) {
+    const url = buildLibsUrl('/skills?all=true&isShort=true');
     const response = await fetch(url, { headers: getLibsHeaders() });
 
     if (!response.ok) {

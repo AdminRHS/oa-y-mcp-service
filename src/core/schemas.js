@@ -452,13 +452,14 @@ export const getProfessionsInputSchema = {
   description: 'Get all professions without pagination'
 };
 
+
 /**
- * Tools schemas
+ * Skills schemas
  */
-export const getToolsInputSchema = {
+export const getSkillsInputSchema = {
   type: 'object',
   properties: {},
-  description: 'Get all tools without pagination'
+  description: 'Get all skills without pagination'
 };
 
 /**
@@ -475,7 +476,7 @@ export const toolDefinitions = [
   { name: 'create_lesson', inputSchema: createLessonInputSchema },
   { name: 'update_lesson', inputSchema: updateLessonInputSchema },
   { name: 'get_professions', inputSchema: getProfessionsInputSchema },
-  { name: 'get_tools', inputSchema: getToolsInputSchema },
+  { name: 'get_skills', inputSchema: getSkillsInputSchema },
   { name: 'get_modules', inputSchema: getModulesInputSchema },
   { name: 'get_module', inputSchema: getModuleInputSchema },
   { name: 'create_module', inputSchema: createModuleInputSchema },

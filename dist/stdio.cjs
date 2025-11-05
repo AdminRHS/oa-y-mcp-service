@@ -18623,10 +18623,10 @@ var getProfessionsInputSchema = {
   properties: {},
   description: "Get all professions without pagination"
 };
-var getToolsInputSchema = {
+var getSkillsInputSchema = {
   type: "object",
   properties: {},
-  description: "Get all tools without pagination"
+  description: "Get all skills without pagination"
 };
 var toolDefinitions = [
   { name: "get_courses", inputSchema: getCoursesInputSchema },
@@ -18638,7 +18638,7 @@ var toolDefinitions = [
   { name: "create_lesson", inputSchema: createLessonInputSchema },
   { name: "update_lesson", inputSchema: updateLessonInputSchema },
   { name: "get_professions", inputSchema: getProfessionsInputSchema },
-  { name: "get_tools", inputSchema: getToolsInputSchema },
+  { name: "get_skills", inputSchema: getSkillsInputSchema },
   { name: "get_modules", inputSchema: getModulesInputSchema },
   { name: "get_module", inputSchema: getModuleInputSchema },
   { name: "create_module", inputSchema: createModuleInputSchema },
@@ -18930,8 +18930,8 @@ var toolHandlers = {
     }
     return await response.json();
   },
-  async get_tools(args) {
-    const url = buildLibsUrl("/tools?all=true&isShort=true");
+  async get_skills(args) {
+    const url = buildLibsUrl("/skills?all=true&isShort=true");
     const response = await fetch(url, { headers: getLibsHeaders() });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
