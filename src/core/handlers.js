@@ -321,6 +321,17 @@ export const toolHandlers = {
     return await response.json();
   },
 
+  async get_tools(args) {
+    const url = buildLibsUrl('/tools?all=true&isShort=true');
+    const response = await fetch(url, { headers: getLibsHeaders() });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return await response.json();
+  },
+
   /**
    * Get modules with pagination
    */

@@ -18623,6 +18623,11 @@ var getProfessionsInputSchema = {
   properties: {},
   description: "Get all professions without pagination"
 };
+var getToolsInputSchema = {
+  type: "object",
+  properties: {},
+  description: "Get all tools without pagination"
+};
 var toolDefinitions = [
   { name: "get_courses", inputSchema: getCoursesInputSchema },
   { name: "get_course", inputSchema: getCourseInputSchema },
@@ -18633,6 +18638,7 @@ var toolDefinitions = [
   { name: "create_lesson", inputSchema: createLessonInputSchema },
   { name: "update_lesson", inputSchema: updateLessonInputSchema },
   { name: "get_professions", inputSchema: getProfessionsInputSchema },
+  { name: "get_tools", inputSchema: getToolsInputSchema },
   { name: "get_modules", inputSchema: getModulesInputSchema },
   { name: "get_module", inputSchema: getModuleInputSchema },
   { name: "create_module", inputSchema: createModuleInputSchema },
@@ -18918,6 +18924,14 @@ var toolHandlers = {
    */
   async get_professions(args) {
     const url = buildLibsUrl("/professions?all=true&isShort=true");
+    const response = await fetch(url, { headers: getLibsHeaders() });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return await response.json();
+  },
+  async get_tools(args) {
+    const url = buildLibsUrl("/tools?all=true&isShort=true");
     const response = await fetch(url, { headers: getLibsHeaders() });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);

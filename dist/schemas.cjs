@@ -32,6 +32,7 @@ __export(schemas_exports, {
   getProfessionsInputSchema: () => getProfessionsInputSchema,
   getTestInputSchema: () => getTestInputSchema,
   getTestsInputSchema: () => getTestsInputSchema,
+  getToolsInputSchema: () => getToolsInputSchema,
   toolDefinitions: () => toolDefinitions,
   updateCourseInputSchema: () => updateCourseInputSchema,
   updateLessonInputSchema: () => updateLessonInputSchema,
@@ -432,6 +433,11 @@ var getProfessionsInputSchema = {
   properties: {},
   description: "Get all professions without pagination"
 };
+var getToolsInputSchema = {
+  type: "object",
+  properties: {},
+  description: "Get all tools without pagination"
+};
 var toolDefinitions = [
   { name: "get_courses", inputSchema: getCoursesInputSchema },
   { name: "get_course", inputSchema: getCourseInputSchema },
@@ -442,6 +448,7 @@ var toolDefinitions = [
   { name: "create_lesson", inputSchema: createLessonInputSchema },
   { name: "update_lesson", inputSchema: updateLessonInputSchema },
   { name: "get_professions", inputSchema: getProfessionsInputSchema },
+  { name: "get_tools", inputSchema: getToolsInputSchema },
   { name: "get_modules", inputSchema: getModulesInputSchema },
   { name: "get_module", inputSchema: getModuleInputSchema },
   { name: "create_module", inputSchema: createModuleInputSchema },
@@ -466,6 +473,7 @@ var toolDefinitions = [
   getProfessionsInputSchema,
   getTestInputSchema,
   getTestsInputSchema,
+  getToolsInputSchema,
   toolDefinitions,
   updateCourseInputSchema,
   updateLessonInputSchema,

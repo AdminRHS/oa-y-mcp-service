@@ -453,6 +453,15 @@ export const getProfessionsInputSchema = {
 };
 
 /**
+ * Tools schemas
+ */
+export const getToolsInputSchema = {
+  type: 'object',
+  properties: {},
+  description: 'Get all tools without pagination'
+};
+
+/**
  * Tool definitions array - single source of truth
  * Used by both STDIO and SSE transports
  */
@@ -466,6 +475,7 @@ export const toolDefinitions = [
   { name: 'create_lesson', inputSchema: createLessonInputSchema },
   { name: 'update_lesson', inputSchema: updateLessonInputSchema },
   { name: 'get_professions', inputSchema: getProfessionsInputSchema },
+  { name: 'get_tools', inputSchema: getToolsInputSchema },
   { name: 'get_modules', inputSchema: getModulesInputSchema },
   { name: 'get_module', inputSchema: getModuleInputSchema },
   { name: 'create_module', inputSchema: createModuleInputSchema },
