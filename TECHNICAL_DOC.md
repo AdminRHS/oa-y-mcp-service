@@ -58,6 +58,8 @@
 - `create_lesson` — create a lesson (use this first to get lesson IDs)
 - `update_lesson` — update a lesson
 - `get_professions` — get all professions (returns array with name and ID)
+- `get_skills` — get all skills (returns array with name and ID)
+- `get_tools` — get all tools (returns array with name and ID)
 
 > **Note:** All tools are available in both production and development modes. Production mode is recommended for all users, development mode is for testing only.
 
@@ -232,6 +234,26 @@ export API_TOKEN_LIBS=your_libs_api_token
 ```json
 {
   "name": "get_professions",
+  "arguments": {}
+}
+```
+
+**Get Skills:**
+**Always returns all skills with name and ID.**
+
+```json
+{
+  "name": "get_skills",
+  "arguments": {}
+}
+```
+
+**Get Tools:**
+**Always returns all tools with name and ID.**
+
+```json
+{
+  "name": "get_tools",
   "arguments": {}
 }
 ```

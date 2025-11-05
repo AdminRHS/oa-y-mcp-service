@@ -107,6 +107,8 @@ This section describes all available tools for managing courses, lessons, module
 ### Profession Management
 
 - `get_professions` — get all professions (returns array with name and ID)
+- `get_skills` — get all skills (returns array with name and ID)
+- `get_tools` — get all tools (returns array with name and ID)
 
 ### Creation Order
 
@@ -258,6 +260,22 @@ Course
 ```json
 {
   "name": "get_professions",
+  "arguments": {}
+}
+```
+
+**Get Skills:**
+```json
+{
+  "name": "get_skills",
+  "arguments": {}
+}
+```
+
+**Get Tools:**
+```json
+{
+  "name": "get_tools",
   "arguments": {}
 }
 ```
