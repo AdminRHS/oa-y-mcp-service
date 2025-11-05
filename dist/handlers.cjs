@@ -171,7 +171,6 @@ var toolHandlers = {
    * Update an existing course
    */
   async update_course(args) {
-    let professions = processProfessions(args.professions || []);
     const courseId = args.courseId;
     const currentUrl = buildApiUrl(`/courses/${courseId}`);
     const currentCourseResponse = await fetch(currentUrl, { headers: getApiHeaders() });
@@ -179,6 +178,14 @@ var toolHandlers = {
       throw new Error(`Failed to get current course: HTTP ${currentCourseResponse.status}`);
     }
     const currentCourse = await currentCourseResponse.json();
+    let professions;
+    if (args.professions !== void 0) {
+      professions = processProfessions(args.professions);
+    } else if (currentCourse.data?.professions) {
+      professions = currentCourse.data.professions;
+    } else {
+      professions = [];
+    }
     const courseData = { _id: courseId, ...args, professions };
     delete courseData.courseId;
     if (!courseData.modules && currentCourse.data?.modules) {
@@ -187,7 +194,7 @@ var toolHandlers = {
         order: module2.order || 1
       }));
     }
-    if (!courseData.tools && currentCourse.data?.tools) {
+    if (courseData.tools === void 0 && currentCourse.data?.tools) {
       courseData.tools = currentCourse.data.tools;
     }
     if (Array.isArray(courseData.modules)) {

@@ -143,7 +143,6 @@ export const toolHandlers = {
    * Update an existing course
    */
   async update_course(args) {
-    let professions = processProfessions(args.professions || []);
     const courseId = args.courseId;
 
     // First, get the current course to preserve existing relationships
@@ -155,6 +154,16 @@ export const toolHandlers = {
     }
 
     const currentCourse = await currentCourseResponse.json();
+
+    // Process professions only if provided
+    let professions;
+    if (args.professions !== undefined) {
+      professions = processProfessions(args.professions);
+    } else if (currentCourse.data?.professions) {
+      professions = currentCourse.data.professions;
+    } else {
+      professions = [];
+    }
 
     const courseData = { _id: courseId, ...args, professions };
     delete courseData.courseId;
@@ -168,7 +177,7 @@ export const toolHandlers = {
     }
 
     // If tools not provided, keep existing ones
-    if (!courseData.tools && currentCourse.data?.tools) {
+    if (courseData.tools === undefined && currentCourse.data?.tools) {
       courseData.tools = currentCourse.data.tools;
     }
 
