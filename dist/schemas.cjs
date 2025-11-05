@@ -59,9 +59,8 @@ var lessonBaseSchema = {
   },
   skills: {
     type: "array",
-    description: "Array of skills (optional)",
     items: { type: "string" },
-    description: "Array of skill IDs (optional, can be empty array)",
+    description: "Array of skill IDs from libservice (optional, can be empty array)",
     default: []
   },
   contentBlocks: {
