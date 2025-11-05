@@ -151,6 +151,7 @@ var toolHandlers = {
       difficulty: args.difficulty,
       duration: args.duration,
       professions,
+      tools: args.tools || [],
       image: args.image,
       isDraft: args.isDraft || false,
       modules
@@ -185,6 +186,9 @@ var toolHandlers = {
         module: module2.id,
         order: module2.order || 1
       }));
+    }
+    if (!courseData.tools && currentCourse.data?.tools) {
+      courseData.tools = currentCourse.data.tools;
     }
     if (Array.isArray(courseData.modules)) {
       for (const mod of courseData.modules) {

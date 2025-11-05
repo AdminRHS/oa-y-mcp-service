@@ -119,6 +119,7 @@ export const toolHandlers = {
       difficulty: args.difficulty,
       duration: args.duration,
       professions,
+      tools: args.tools || [],
       image: args.image,
       isDraft: args.isDraft || false,
       modules,
@@ -164,6 +165,11 @@ export const toolHandlers = {
         module: module.id,
         order: module.order || 1
       }));
+    }
+
+    // If tools not provided, keep existing ones
+    if (!courseData.tools && currentCourse.data?.tools) {
+      courseData.tools = currentCourse.data.tools;
     }
 
     // Process modules - expect module IDs with order
